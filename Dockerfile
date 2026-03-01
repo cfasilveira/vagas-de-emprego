@@ -22,5 +22,5 @@ ENV PYTHONPATH=/app
 # Expõe a porta do Streamlit
 EXPOSE 8501
 
-# Comando para rodar a aplicação
-CMD ["uv", "run", "streamlit", "run", "src/main.py", "--server.port=8501", "--server.address=0.0.0.0"]
+# COMANDO CORRIGIDO: Aponta para o main.py da raiz
+CMD ["uv", "run", "streamlit", "run", "main.py", "--server.port=8501", "--server.address=0.0.0.0"]
