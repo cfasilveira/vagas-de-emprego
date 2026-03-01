@@ -1,0 +1,30 @@
+# --- Segurança e Credenciais ---
+# Nunca envie senhas, chaves de API ou URLs de banco de dados
+.env
+*.pem
+*.key
+
+# --- Python / uv ---
+# O 'uv' gerencia dependências; não precisamos da pasta virtual no Git
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.ipynb_checkpoints/
+.python-version
+
+# --- Docker ---
+# Evita enviar logs de containers ou dados locais do banco
+.docker/
+*.log
+
+# --- Streamlit ---
+# Configurações locais do frontend
+.streamlit/config.toml
+.streamlit/secrets.toml
+
+# --- Sistema Operacional (Ubuntu/Linux) ---
+# Arquivos residuais do seu ambiente Ryzen/Ubuntu
+.DS_Store
+.directory
+.trash/

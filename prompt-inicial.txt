@@ -1,0 +1,130 @@
+#Analise junto aos maiores especialistas mundiais em:
+
+- gerenciamento de projetos para web,
+
+- web design modernos e eficientes,
+
+- banco de dados relacionais dinamicos e inteligentes, 
+
+- IAs, 
+
+- seguranca cibernetica,
+
+- hackers do bem,
+
+- Python uv e Streamlit
+
+- sistemas em nuvem,
+
+- SaaS e micro-SaaS,
+
+- containers e sitemas operacionais
+
+
+Para desenvolvermos o projeto 'vagas-emprego'.
+
+
+#Objetivo do projeto:
+
+-Vamos desenvolver um sistema de oferta de vagas de emprego.
+
+-A principio vamos fazer um MVP local mas, o objetivo final e rodar em nuvem.
+
+-Teremos sistema de busca de vaga.
+
+-Teremos vagas listadas por ordem de publicacao da mais recente a mais antiga.
+
+-Cada vaga tera uma janela com a descricao da vaga e um botao de incricao 'Eu quero!' para 
+confirmar a escolha da vaga.
+
+#Descricao do projeto:
+
+*O administrador, com aceso restrito por login e senha, tera campos para:
+
+-nome da vaga
+
+-descricao da vaga
+
+-salario da vaga
+
+-beneficios da vaga
+
+-data em que a oferta da vaga termina
+
+
+*O candidato, depois que selecionar o botao 'Eu quero!', sera enviado para a pagina de cadastro 
+para preencher os campos:
+
+-nome completo
+
+-documento (RG/CPF)
+
+-celular/whatsapp
+
+-genero (M/F)
+
+ATENCAO: Todos os campos deverao ser validados de acordo com o tipo de preenchimento para evitar 
+qualquer forma de ataque ou invasao por hackers
+
+
+*Teremos um banco de dados relacional com:
+
+- nome das vagas
+
+- nome dos candidatos
+
+- contato dos candidatos (celular/whatsapp e e-mail)
+
+- data da inscricao
+- genero
+
+
+*Dashboard com analise:
+
+- das vagas mais procuradas
+
+- das datas com mais procura de vagas
+
+- genero que mais procura por vagas
+
+
+*Diretrizes de codificacao:
+
+- codigo comentado, mostrando como as funcoes se relacionam e porque
+
+- projeto devera ser modular com uso de containers que se comunicarao usando sistema de seguranca 
+tipo 'aperto de mao' antes de transferirem informacoes
+
+- favorecer uso de funcoes em scripts modulares para evitar scripts compridos 'linguicoes' e POO 
+garantindo reaproveitamento de codigo, robustez e resiliencia
+
+- o codigo devera ser sempre revisado e testado para garantir o uso de tecnicas de boas praticas de
+programacao e evitar alucinacoes, desvios logicos e ambiguidades
+
+- o projeto devera ser desenvolvido com scripts modulares, de forma que cada modulo possa ser 
+testado tanto em funcionalidade quanto em seguranca de modo que esse script possa ser usados em 
+diferentes projetos
+
+*Detalhes do projeto
+- o administrador so acessara atraves de login e senha para cadastrar novas vagas.
+
+- quando o administrador cadastrar novas vagas, o banco de dados devera confirmar se a vaga ja 
+existe, verificando tipo de vaga, localidade e data de termino da oferta, caso ela exista, o 
+administrador devera ser notificado se deseja continuar, caso o administrador queira continuar ou
+caso a vaga nao exista, o banco de dados sera atualizado automaticamente assim que o administrador 
+confirmar a inclusao da vaga. Atencao com duplicidades.
+
+- Quando o candidato clicar no botao de inscricao da vaga 'Eu quero!', ele devera preencher o 
+formulario de inscricao. Caso o nome, a vaga e o RG/CPF ja existao no banco de dados, o candidato 
+devera ser notificado que ja esta cadastrado no sistema para aquela vaga. Atencao com duplicidades.
+
+-Frontend sera com streamlit diretamente no Browser para garantir portabilidade e baixa manutencao.
+
+-Os especialista em seguranca deveram garantir serco total as possiveis ameacas.
+
+Qual a opiniao do gerenciamento de projetos para web, sobre como deveremos desenvolver esse projeto?
+- Tudo de uma vez ou fatia-lo em pedacos e depois junta-los?
+
+Monte o planejamento passo a passo do que faremos e das tecnologias que usaremos. 
+Vamos desenvolver em containers para nao contaminar o sistema do host. 
+Com base nas diretrizes de Falha Rápida (Fail Fast).
