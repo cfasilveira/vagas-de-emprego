@@ -11,3 +11,9 @@ dependencies = [
     "sqlalchemy>=2.0.47",
     "streamlit>=1.54.0",
 ]
+
+# Nova seção para ferramentas de teste e robustez
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+]

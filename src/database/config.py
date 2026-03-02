@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from src.logger import log_error
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = "postgresql://user:pass@db:5432/vagas_db"
 
 if not DATABASE_URL:
     log_error("DATABASE_URL não configurada no ambiente!")

@@ -1,38 +1,46 @@
 import streamlit as st
 from src.database import init_db
-from src.admin import render_admin_panel
+from src.logger import log_audit
+from src.admin.auth import check_password  # Proteção de acesso
+from src.admin.views import render_admin_portal  # Maestro das abas
+from src.candidate import render_candidate_portal
 
-# 1. Configuração de Identidade Visual e Segurança de Página
+# 1. Configuração ÚNICA de Página (Evita erro de re-chamada)
 st.set_page_config(
-    page_title="Portal de Vagas Segura",
+    page_title="Sistema de Vagas Inteligente",
     page_icon="🎯",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    layout="wide"
 )
 
 def main():
-    # 2. Health Check e Boot do Banco (Fail Fast)
     try:
+        # 2. Inicialização do Banco de Dados
         init_db()
-    except Exception as e:
-        st.error("⚠️ Falha crítica na conexão com o Banco de Dados.")
-        return
-
-    # 3. Menu de Navegação Lateral
-    st.sidebar.title("🚀 Navegação Principal")
-    app_mode = st.sidebar.selectbox(
-        "Selecione o Portal:",
-        ["Candidato: Buscar Vagas", "Admin: Gestão Interna"]
-    )
-
-    # 4. Roteamento Inteligente
-    if app_mode == "Candidato: Buscar Vagas":
-        st.title("🎯 Oportunidades Disponíveis")
-        st.info("O módulo de candidatura será ativado na Fase 4 (IA DeepSeek integration).")
         
-    elif app_mode == "Admin: Gestão Interna":
-        # Chama o pacote modular que subdividimos (auth + forms)
-        render_admin_panel()
+        # 3. Sidebar Personalizada
+        st.sidebar.image("https://cdn-icons-png.flaticon.com/512/1063/1063376.png", width=80)
+        st.sidebar.title("🚀 Navegação")
+        
+        portal = st.sidebar.selectbox(
+            "Selecione o Portal:",
+            ["Candidato: Buscar Vagas", "Admin: Painel de Controle"]
+        )
+        
+        st.sidebar.markdown("---")
+        st.sidebar.info("🤖 IA Engine: Ollama (Mistral/Llama)")
+
+        # 4. Roteamento com Validação de Segurança
+        if portal == "Candidato: Buscar Vagas":
+            render_candidate_portal()
+        
+        elif portal == "Admin: Painel de Controle":
+            # Integração: Só chama o views.py se o login for bem-sucedido
+            if check_password():
+                render_admin_portal() 
+
+    except Exception as e:
+        st.error("Erro crítico na inicialização.")
+        log_audit(f"Falha no boot: {str(e)}")
 
 if __name__ == "__main__":
     main()

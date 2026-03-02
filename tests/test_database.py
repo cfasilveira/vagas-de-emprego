@@ -1,49 +1,51 @@
-# tests/test_database.py
-from src.database import init_db, get_db, Vaga, Candidato
-from src.database.repository import VagaRepository, CandidatoRepository
-from datetime import date, timedelta
+import pytest
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine
+from sqlalchemy.exc import IntegrityError
+from src.database.config import Base, DATABASE_URL
+from src.database.models import UF, Vaga, Candidato, Inscricao
 
-def testar_fluxo_banco():
-    print("--- 🚀 Iniciando Teste de Integração (Database Modular) ---")
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(bind=engine)
+
+def test_db_resilience():
+    """Valida se o banco barra duplicatas de vagas e inscrições."""
+    Base.metadata.create_all(bind=engine)
+    db = SessionLocal()
     
-    # 1. Inicializa as tabelas
-    init_db()
-    print("✅ Passo 1: Tabelas verificadas/criadas.")
+    try:
+        # 1. SETUP: Criar UF e Vaga
+        uf = UF(sigla="GO", nome="Goiás")
+        db.add(uf)
+        db.commit()
 
-    with next(get_db()) as db:
-        # 2. Teste de Criação de Vaga
-        nome_vaga = "Dev Python Senior"
-        local = "Remoto"
-        data_fim = date.today() + timedelta(days=30)
+        v1 = Vaga(titulo="Arrumadeira", cidade="Rio Quente", uf_id=uf.id, salario=2500.0)
+        db.add(v1)
+        db.commit()
 
-        # Limpeza para o teste ser repetível
-        vaga_existente = VagaRepository.buscar_duplicada(db, nome_vaga, local, data_fim)
-        if not vaga_existente:
-            nova_vaga = Vaga(nome=nome_vaga, descricao="Teste", salario=10000, localidade=local, data_termino=data_fim)
-            VagaRepository.salvar(db, nova_vaga)
-            print(f"✅ Passo 2: Vaga '{nome_vaga}' criada.")
-        else:
-            print(f"ℹ️ Passo 2: Vaga '{nome_vaga}' já existia (OK).")
+        # 2. TESTE: Vaga Duplicada (Deve Falhar)
+        v2 = Vaga(titulo="Arrumadeira", cidade="Rio Quente", uf_id=uf.id, salario=2500.0)
+        db.add(v2)
+        with pytest.raises(IntegrityError):
+            db.commit()
+        db.rollback()
 
-        # 3. Teste de Duplicidade (O ponto crítico!)
-        duplicada = VagaRepository.buscar_duplicada(db, nome_vaga, local, data_fim)
-        if duplicada:
-            print("✅ Passo 3: Detector de duplicidade de vagas funcionando!")
+        # 3. TESTE: Inscrição Única
+        c = Candidato(nome="Carlos", email="c@c.com", documento="123")
+        db.add(c)
+        db.commit()
 
-        # 4. Teste de Inscrição de Candidato
-        doc_teste = "12345678901"
-        vaga_id = duplicada.id
+        # Primeira inscrição: OK
+        i1 = Inscricao(candidato_id=c.id, vaga_id=v1.id)
+        db.add(i1)
+        db.commit()
+
+        # Segunda inscrição idêntica: DEVE GERAR ERRO NO BANCO
+        i2 = Inscricao(candidato_id=c.id, vaga_id=v1.id)
+        db.add(i2)
         
-        if not CandidatoRepository.ja_inscrito(db, doc_teste, vaga_id):
-            candi = Candidato(nome_completo="Carlos Teste", documento=doc_teste, vaga_id=vaga_id)
-            CandidatoRepository.salvar(db, candi)
-            print("✅ Passo 4: Candidato inscrito com sucesso.")
-        
-        # 5. Verificação de Duplicidade de Candidato
-        if CandidatoRepository.ja_inscrito(db, doc_teste, vaga_id):
-            print("✅ Passo 5: Detector de duplicidade de candidatos funcionando!")
-
-    print("\n--- ✨ Teste de Integração Concluído com Sucesso! ---")
-
-if __name__ == "__main__":
-    testar_fluxo_banco()
+        with pytest.raises(IntegrityError):
+            db.commit()
+            
+    finally:
+        db.close()

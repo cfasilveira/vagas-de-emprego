@@ -1,51 +1,64 @@
 import streamlit as st
+from datetime import date
 from src.database.config import get_db
 from src.database.models import Vaga
-from src.database.repository import VagaRepository
-from src.validators import VagaSchema
-from src.logger import log_audit, log_error
+from src.security import SecurityGate
 
-def form_cadastro_vaga():
-    st.subheader("📢 Nova Oportunidade")
-    with st.form("form_vaga", clear_on_submit=True):
-        nome = st.text_input("Título", key="f_nome")
-        local = st.text_input("Localidade", key="f_local")
-        salario = st.number_input("Salário", min_value=0.0)
-        data_fim = st.date_input("Data Limite")
-        desc = st.text_area("Descrição")
-        # ADICIONADO: Campo que o seu Schema exige
-        bene = st.text_area("Benefícios (ex: VR, VT, Home Office)")
-
-        if st.form_submit_button("Registrar no Sistema"):
-            try:
-                # 1. Validar com todos os campos exigidos pelo Schema
-                VagaSchema(
-                    nome=nome, 
-                    descricao=desc, 
-                    salario=salario, 
-                    data_termino=str(data_fim),
-                    beneficios=bene # Agora o Schema não vai mais reclamar
-                )
-                
-                with next(get_db()) as db:
-                    if VagaRepository.buscar_duplicada(db, nome, local, data_fim):
-                        st.error("🚨 Duplicidade bloqueada pelo servidor.")
-                        log_audit(f"BLOQUEIO: Vaga duplicada negada: {nome}")
-                    else:
-                        # 2. Salvar no Banco (Mapeando corretamente os campos)
-                        vaga = Vaga(
-                            nome=nome, 
-                            localidade=local, 
-                            salario=salario, 
-                            data_termino=data_fim, 
-                            descricao=desc,
-                            beneficios=bene
-                        )
-                        VagaRepository.salvar(db, vaga)
-                        st.success(f"Vaga '{nome}' publicada com sucesso!")
-                        log_audit(f"DATABASE: Nova vaga inserida: {nome}")
+def render_vaga_form():
+    """
+    Interface de Cadastro de Vagas (Aba 1).
+    Agora com proteção contra duplicidade de registros.
+    """
+    st.subheader("📢 Publicar Nova Oportunidade")
+    
+    with st.form("form_cadastro_vaga", clear_on_submit=True):
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            nome = st.text_input("Título da Vaga*", placeholder="Ex: Desenvolvedor Fullstack")
+            localidade = st.text_input("Localidade*", placeholder="Ex: Remoto ou Goiânia - GO")
             
+        with col2:
+            salario = st.number_input("Salário (R$)", min_value=0.0, step=500.0, format="%.2f")
+            data_termino = st.date_input("Prazo de Inscrição", min_value=date.today())
+
+        descricao = st.text_area("Descrição Detalhada e Requisitos*", height=150)
+        
+        st.markdown("---")
+        submit = st.form_submit_button("✅ Salvar e Publicar Vaga")
+
+        if submit:
+            # 1. Validação de Campos Obrigatórios
+            if not nome or not localidade or not descricao:
+                return st.error("❗ Por favor, preencha todos os campos obrigatórios (*).")
+
+            # 2. Validação de Segurança (Injection Proof)
+            if not SecurityGate.validate_input(nome) or not SecurityGate.validate_input(descricao):
+                return st.error("❌ Caracteres não permitidos detectados nos campos de texto.")
+
+            try:
+                with next(get_db()) as db:
+                    # --- FAIL FIRST: VERIFICAÇÃO DE DUPLICIDADE ---
+                    vaga_repetida = db.query(Vaga).filter(
+                        Vaga.nome == nome,
+                        Vaga.localidade == localidade,
+                        Vaga.salario == salario
+                    ).first()
+
+                    if vaga_repetida:
+                        return st.warning(f"⚠️ A vaga '{nome}' para '{localidade}' já está cadastrada.")
+
+                    # 3. Inserção Segura
+                    nova_vaga = Vaga(
+                        nome=nome,
+                        localidade=localidade,
+                        salario=salario,
+                        data_termino=data_termino,
+                        descricao=descricao
+                    )
+                    db.add(nova_vaga)
+                    db.commit()
+                    st.success(f"🚀 Vaga '{nome}' publicada com sucesso!")
+                    
             except Exception as e:
-                # Melhoria: Mostra o erro real se algo ainda falhar
-                st.error(f"Erro na validação: {str(e)}")
-                log_error(f"Falha técnica: {str(e)}")
+                st.error(f"☢️ Erro ao persistir dados: {str(e)}")

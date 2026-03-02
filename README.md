@@ -1,51 +1,70 @@
-# 🎯 Portal de Vagas Segura (AI-Enhanced Architecture)
+🚀 Sistema de Cadastro de Vagas (v2.0 - Relacional & Resiliente)
 
-Este sistema de gestão de vagas e candidatos foi construído sob a metodologia **Fail Fast** e **Clean Architecture**, utilizando IA para elevar os padrões de segurança cibernética e robustez modular.
+Este projeto evoluiu de um modelo simplificado para uma arquitetura de banco de dados relacional robusta, utilizando PostgreSQL, SQLAlchemy e o gerenciador de pacotes uv. A aplicação está totalmente conteinerizada para garantir um ambiente de desenvolvimento isolado e um host imaculado.
+🏗️ Mudança de Paradigma: Arquitetura 2.0
 
-## 🤖 Inteligência e IA no Ciclo de Vida
-Diferente do desenvolvimento tradicional, este projeto utiliza **IA Especialista** para:
-* **Refatoração Preditiva:** Identificação proativa de "code smells" (como o fatiamento do antigo "linguição" de banco de dados).
-* **Testes de Injeção Hacker:** Validação via IA de expressões regulares para bloquear ataques XSS e SQL Injection antes que cheguem ao banco.
-* **Arquitetura de Confiança Zero:** Implementação de um "Audit Trail" (Rastro de Auditoria) sugerido pela análise de riscos da IA para garantir a integridade de cada transação.
+A estrutura foi normalizada em 5 tabelas, garantindo integridade referencial e eliminando redundâncias:
 
-## 🛡️ Pilares do Sistema
+    ufs: Tabela mestre para os 27 estados brasileiros, garantindo padronização regional.
 
-### 1. Robustez (Fail Fast)
-O sistema é projetado para falhar rápido e informar o erro. Através de **Health Checks** automáticos, a aplicação valida a saúde do banco PostgreSQL e das variáveis de ambiente no instante do boot, impedindo estados inconsistentes.
+    vagas: Armazena as oportunidades, vinculadas obrigatoriamente a uma UF.
 
-### 2. Segurança Cibernética
-* **Sanitização Ativa:** Módulo `validators.py` que limpa e valida documentos e nomes.
-* **Audit Log:** Cada tentativa de duplicidade ou acesso restrito é logada, criando um rastro forense.
-* **Aperto de Mão (Handshake):** Comunicação entre módulos protegida por lógica de repositório isolada.
+    candidatos: Registro único de usuários com travas em email e documento.
 
-### 3. Inteligência de Dados
-O sistema impede nativamente:
-* Vagas duplicadas (mesmo nome/localidade/data).
-* Inscrições duplas de um mesmo candidato na mesma vaga.
+    inscricoes: Tabela de Junção (M:N). Ela conecta o conjunto de candidatos ao conjunto de vagas. Permite que vários candidatos se inscrevam em várias vagas, registrando logs de data e o feedback da análise de IA.
 
-## 🚀 Estrutura Modular
-\`\`\`text
-├── src/
-│   ├── database/    # Persistência inteligente (Models/Repository/Config)
-│   ├── logger.py    # Sistema de Auditoria (Audit Trail)
-│   ├── security.py  # Core de segurança e autenticação
-│   └── validators.py # Validação proativa contra injeções
-├── tests/           # Testes de integração e segurança
-└── docker-compose.yml # Orquestração de ambiente isolado
-\`\`\`
+    admins: Gestão de acesso administrativo com senhas criptografadas.
 
-## 🛠️ Como Rodar (Ambiente Isolado)
-Certifique-se de ter o Docker e o \`uv\` instalados.
+🛡️ Resiliência e Integridade
 
-1.  **Inicializar Ambiente:**
-    \`\`\`bash
-    docker compose up -d
-    \`\`\`
+A segurança agora é aplicada no nível do banco de dados através de UniqueConstraints:
 
-2.  **Rodar Testes de Elite (IA-Validated):**
-    \`\`\`bash
-    docker compose run --rm -e PYTHONPATH=. app uv run python tests/test_database.py
-    \`\`\`
+    Vagas: Uma vaga não pode ser duplicada para o mesmo título, cidade e estado (_vaga_uc).
 
----
-**Status:** Fase 2 Concluída | **Qualidade:** 100% Cobertura de Lógica | **Segurança:** Ativa
+    Inscrições: Um candidato não pode se inscrever duas vezes na mesma vaga (_insc_unica_uc), garantindo que a relação entre um candidato e uma oportunidade seja única.
+
+🛠️ Stack Tecnológica
+
+    Linguagem: Python 3.12 (Gerenciado por uv via pyproject.toml)
+
+    Frontend: Streamlit
+
+    Banco de Dados: PostgreSQL 15 (Alpine)
+
+    ORM: SQLAlchemy 2.0
+
+    Infraestrutura: Docker & Docker Compose
+
+🚀 Como Executar (Host Limpo)
+
+O projeto utiliza volumes mapeados, mas o ambiente virtual e as dependências são geridos internamente pelo container via uv.
+1. Subir a Infraestrutura
+Bash
+
+docker compose up -d --build
+
+2. Popular o Banco (Seed)
+
+Necessário para injetar os estados (UFs) e o usuário administrativo inicial:
+Bash
+
+docker compose exec app uv run python -m src.database.seed
+
+3. Rodar Testes de Estresse
+
+Valida as travas de duplicidade e integridade no PostgreSQL:
+Bash
+
+docker compose exec app uv run pytest tests/test_database.py
+
+📊 Estrutura de Tabelas (Banco: vagas_db)
+
+    Database: vagas_db
+
+    Usuário: user | Senha: pass
+
+    Constraints Ativas:
+
+        _vaga_uc btree (titulo, cidade, uf_id)
+
+        _insc_unica_uc btree (candidato_id, vaga_id)
