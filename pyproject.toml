@@ -12,6 +12,7 @@ dependencies = [
     "python-dotenv>=1.2.2",
     "sqlalchemy>=2.0.47",
     "streamlit>=1.54.0",
+    "requests>=2.31.0",
 ]
 
 # Nova seção para ferramentas de teste e robustez

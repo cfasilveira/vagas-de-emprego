@@ -1,21 +1,35 @@
 import requests
-import json
 
 class AIService:
-    def __init__(self, model="llama3.1"):
-        # Usamos o nome do container 'ollama-service' definido no seu docker ps
-        self.url = "http://ollama-service:11434/api/generate"
+    def __init__(self, model="qwen2.5-coder:7b"):
+        # Aponta para o gateway do Docker para alcançar o Ollama no host
+        self.url = "http://host.docker.internal:11434/api/generate"
         self.model = model
 
-    def analisar_candidato(self, nome_vaga, resumo_experiencia):
-        """Analisa o currículo e gera feedback técnico."""
-        prompt = f"""
-        Você é um recrutador especializado. 
-        Vaga: {nome_vaga}
-        Resumo do Candidato: {resumo_experiencia}
+    def analisar_candidato(self, nome_vaga, descricao_vaga, resumo_experiencia):
+        """
+        Analisa o currículo comparando com o título e a descrição da vaga.
+        """
+        # FAIL FIRST: Validação de entradas
+        if not resumo_experiencia or len(resumo_experiencia) < 10:
+            return "Resumo insuficiente para análise técnica."
         
-        Tarefa: Avalie se o candidato tem aderência técnica. 
-        Responda em no máximo 3 frases curtas e objetivas.
+        # Garante que temos uma descrição para comparar
+        desc_vaga = descricao_vaga if descricao_vaga else "Descrição não detalhada."
+
+        prompt = f"""
+        Aja como um recrutador técnico rigoroso. 
+        Compare o currículo do candidato com os requisitos reais da vaga.
+
+        VAGA: {nome_vaga}
+        DETALHES DA VAGA: {desc_vaga}
+        
+        RESUMO DO CANDIDATO: {resumo_experiencia}
+
+        TAREFA: Gere um feedback técnico em PT-BR com exatamente 3 frases:
+        1. Match %: (Seja honesto na nota de aderência aos requisitos).
+        2. Ponto Forte: (O que mais se destaca frente à descrição).
+        3. Ponto de Atenção: (O que falta ou o que deve ser perguntado na entrevista).
         """
         
         try:
@@ -26,10 +40,14 @@ class AIService:
                     "prompt": prompt,
                     "stream": False
                 },
-                timeout=25 # Limite para não travar o Streamlit
+                timeout=45 # Contexto maior pode exigir um pouco mais de tempo
             )
-            if response.status_code == 200:
-                return response.json().get('response', "Análise concluída, mas sem texto.")
-            return f"IA Temporariamente indisponível (Erro {response.status_code})"
+            
+            # FAIL FIRST: Validação do status da resposta
+            if response.status_code != 200:
+                return f"IA indisponível (Erro {response.status_code})"
+                
+            return response.json().get('response', "IA não retornou texto de análise.")
+            
         except Exception as e:
-            return f"Erro de conexão com Ollama: Localhost não atingível via Docker Network."
+            return f"Erro de conexão com o cérebro da IA: {str(e)[:50]}"

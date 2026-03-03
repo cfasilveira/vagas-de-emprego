@@ -25,7 +25,9 @@ def render_admin_portal():
 
 def render_inscritos():
     with next(get_db()) as db:
+        # Carrega inscrições (pode adicionar .order_by(Inscricao.data.desc()) se desejar)
         inscricoes = db.query(Inscricao).all()
+        
         if not inscricoes: 
             return st.info("No momento não temos candidatos inscritos.")
 
@@ -44,8 +46,12 @@ def render_inscritos():
                 st.write("**📝 Resumo do Candidato:**")
                 st.write(inc.candidato.resumo)
                 
+                # Exibição Inteligente do Feedback da IA
                 if inc.feedback_ia:
-                    st.info(f"🤖 Análise IA: {inc.feedback_ia}")
+                    if "Erro" in inc.feedback_ia or "Status" in inc.feedback_ia or "indisponível" in inc.feedback_ia:
+                        st.warning(f"⚠️ {inc.feedback_ia}")
+                    else:
+                        st.info(f"🤖 **Análise IA:** {inc.feedback_ia}")
 
 def render_lista_vagas():
     from src.database.models import Vaga

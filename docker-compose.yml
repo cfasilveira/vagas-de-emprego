@@ -7,6 +7,9 @@ services:
       - "8501:8501"
     environment:
       - DATABASE_URL=postgresql://user:pass@db:5432/vagas_db
+    # FUNDAMENTAL: Cria a rota para o Ollama que está fora deste Compose
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - db
 
