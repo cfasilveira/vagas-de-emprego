@@ -1,64 +1,53 @@
 import streamlit as st
-from datetime import date
-from src.database.config import get_db
-from src.database.models import Vaga
-from src.security import SecurityGate
+from src.database.config import SessionLocal
+from src.database.models import Vaga, UF
 
 def render_vaga_form():
-    """
-    Interface de Cadastro de Vagas (Aba 1).
-    Agora com proteção contra duplicidade de registros.
-    """
     st.subheader("📢 Publicar Nova Oportunidade")
     
-    with st.form("form_cadastro_vaga", clear_on_submit=True):
-        col1, col2 = st.columns([2, 1])
+    # 1. Busca as UFs FORA do form para garantir que a lista esteja pronta
+    try:
+        with SessionLocal() as db:
+            lista_ufs = db.query(UF).order_by(UF.sigla).all()
+            opcoes_uf = {f"{u.sigla} - {u.nome}": u.id for u in lista_ufs}
+    except Exception as e:
+        st.error(f"Erro ao carregar estados: {e}")
+        opcoes_uf = {}
+
+    if not opcoes_uf:
+        st.warning("⚠️ Nenhuma UF encontrada no banco. Por favor, rode o script de seed.")
+        return
+
+    # 2. Início do Formulário
+    with st.form("form_vaga", clear_on_submit=True):
+        titulo = st.text_input("Título da Vaga*", placeholder="Ex: Desenvolvedor Fullstack")
+        cidade = st.text_input("Cidade*", placeholder="Ex: Goiânia")
         
-        with col1:
-            nome = st.text_input("Título da Vaga*", placeholder="Ex: Desenvolvedor Fullstack")
-            localidade = st.text_input("Localidade*", placeholder="Ex: Remoto ou Goiânia - GO")
-            
-        with col2:
-            salario = st.number_input("Salário (R$)", min_value=0.0, step=500.0, format="%.2f")
-            data_termino = st.date_input("Prazo de Inscrição", min_value=date.today())
-
-        descricao = st.text_area("Descrição Detalhada e Requisitos*", height=150)
+        # O selectbox agora usa a lista pré-carregada e segura
+        uf_selecionada = st.selectbox("Estado/UF*", options=list(opcoes_uf.keys()))
         
-        st.markdown("---")
-        submit = st.form_submit_button("✅ Salvar e Publicar Vaga")
-
-        if submit:
-            # 1. Validação de Campos Obrigatórios
-            if not nome or not localidade or not descricao:
-                return st.error("❗ Por favor, preencha todos os campos obrigatórios (*).")
-
-            # 2. Validação de Segurança (Injection Proof)
-            if not SecurityGate.validate_input(nome) or not SecurityGate.validate_input(descricao):
-                return st.error("❌ Caracteres não permitidos detectados nos campos de texto.")
+        salario = st.number_input("Salário (R$)", min_value=0.0, step=100.0)
+        prazo = st.date_input("Prazo de Inscrição")
+        descricao = st.text_area("Descrição Detalhada e Requisitos*")
+        
+        if st.form_submit_button("✅ Salvar e Publicar Vaga"):
+            if not titulo or not descricao or not cidade:
+                st.error("Preencha todos os campos obrigatórios!")
+                return
 
             try:
-                with next(get_db()) as db:
-                    # --- FAIL FIRST: VERIFICAÇÃO DE DUPLICIDADE ---
-                    vaga_repetida = db.query(Vaga).filter(
-                        Vaga.nome == nome,
-                        Vaga.localidade == localidade,
-                        Vaga.salario == salario
-                    ).first()
-
-                    if vaga_repetida:
-                        return st.warning(f"⚠️ A vaga '{nome}' para '{localidade}' já está cadastrada.")
-
-                    # 3. Inserção Segura
+                with SessionLocal() as db:
                     nova_vaga = Vaga(
-                        nome=nome,
-                        localidade=localidade,
+                        titulo=titulo, 
+                        cidade=cidade,
+                        uf_id=opcoes_uf[uf_selecionada], # Mapeia ID corretamente
                         salario=salario,
-                        data_termino=data_termino,
-                        descricao=descricao
+                        descricao=descricao,
+                        data_termino=prazo
                     )
                     db.add(nova_vaga)
                     db.commit()
-                    st.success(f"🚀 Vaga '{nome}' publicada com sucesso!")
-                    
+                    st.success("Vaga publicada com sucesso!")
+                    st.rerun()
             except Exception as e:
-                st.error(f"☢️ Erro ao persistir dados: {str(e)}")
+                st.error(f"☢️ Erro ao persistir dados: {e}")

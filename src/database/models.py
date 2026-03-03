@@ -37,6 +37,9 @@ class Candidato(Base):
     email = Column(String(100), unique=True, nullable=False)
     documento = Column(String(20), unique=True, nullable=False)
     celular = Column(String(20), nullable=True)
+    # Adicionados para suportar o formulário e a IA:
+    genero = Column(String(20), nullable=True)
+    resumo = Column(Text, nullable=True)
     
     inscricoes = relationship("Inscricao", back_populates="candidato")
 
@@ -45,11 +48,10 @@ class Inscricao(Base):
     id = Column(Integer, primary_key=True)
     candidato_id = Column(Integer, ForeignKey("candidatos.id"), nullable=False)
     vaga_id = Column(Integer, ForeignKey("vagas.id"), nullable=False)
-    data = Column(DateTime, default=datetime.utcnow) # Pode manter utcnow por enquanto
+    data = Column(DateTime, default=datetime.utcnow)
     feedback_ia = Column(Text, nullable=True)
     
     candidato = relationship("Candidato", back_populates="inscricoes")
     vaga = relationship("Vaga", back_populates="inscricoes")
 
-    # ESTA LINHA É A TRAVA DE SEGURANÇA (Obrigatória para o teste passar):
-    __table_args__ = (UniqueConstraint('candidato_id', 'vaga_id', name='_insc_unica_uc'),)    
+    __table_args__ = (UniqueConstraint('candidato_id', 'vaga_id', name='_insc_unica_uc'),)

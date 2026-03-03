@@ -1,32 +1,53 @@
-from src.database.config import get_db
-from src.database.models import Candidato, Vaga
-from src.ai_service import AIService
+from src.database.config import SessionLocal
+from src.database.models import Candidato, Inscricao, Vaga
+from datetime import datetime
 
 def realizar_inscricao(vaga_id, dados):
-    ai = AIService(model="llama3.1") # Ou "mistral"
-    
+    db = SessionLocal()
     try:
-        with next(get_db()) as db:
-            vaga = db.query(Vaga).filter(Vaga.id == vaga_id).first()
-            
-            # 1. Gerar Análise de IA antes de salvar
-            feedback = ai.analisar_candidato(vaga.nome, dados['resumo'])
-            
-            # 2. Criar objeto do candidato com as novas colunas
-            novo_candidato = Candidato(
-                nome_completo=dados['nome'],
+        # 1. Validação da Vaga
+        vaga = db.query(Vaga).filter(Vaga.id == vaga_id).first()
+        if not vaga:
+            return False
+
+        # 2. Gestão do Candidato
+        candidato = db.query(Candidato).filter(
+            (Candidato.documento == dados['documento']) | 
+            (Candidato.email == dados['email'])
+        ).first()
+
+        if not candidato:
+            candidato = Candidato(
+                nome=dados['nome'],
                 documento=dados['documento'],
                 email=dados['email'],
                 celular=dados['celular'],
                 genero=dados['genero'],
-                resumo_experiencia=dados['resumo'],
-                feedback_ia=feedback,
-                vaga_id=vaga_id
+                resumo=dados['resumo']
             )
-            
-            db.add(novo_candidato)
-            db.commit()
-            return True
+            db.add(candidato)
+        else:
+            # Atualiza o resumo para refletir a nova candidatura
+            candidato.resumo = dados['resumo']
+            candidato.celular = dados['celular']
+        
+        db.flush() 
+
+        # 3. Registro da Inscrição (Evita duplicados pela UniqueConstraint do models)
+        nova_inscricao = Inscricao(
+            candidato_id=candidato.id,
+            vaga_id=vaga.id,
+            data=datetime.utcnow(),
+            feedback_ia="Aguardando processamento pela IA..."
+        )
+        
+        db.add(nova_inscricao)
+        db.commit()
+        return True
+
     except Exception as e:
-        print(f"Erro no Handler: {e}")
+        db.rollback()
+        print(f"❌ Erro Crítico no Handler: {e}") 
         return False
+    finally:
+        db.close()
