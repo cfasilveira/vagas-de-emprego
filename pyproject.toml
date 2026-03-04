@@ -1,7 +1,7 @@
 [project]
 name = "cadastro-vagas"
 version = "0.1.0"
-description = "Add your description here"
+description = "Sistema Inteligente de Gestão de Vagas"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -14,9 +14,9 @@ dependencies = [
     "streamlit>=1.54.0",
     "requests>=2.31.0",
     "plotly>=6.6.0",
+    "pandas>=2.2.0",
 ]
 
-# Nova seção para ferramentas de teste e robustez
 [dependency-groups]
 dev = [
     "pytest>=8.0.0",
