@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Text, ForeignKey, UniqueConstraint, DateTime, Date
+from sqlalchemy import Column, Integer, String, Float, Text, ForeignKey, UniqueConstraint, DateTime, Date, Boolean
 from sqlalchemy.orm import relationship
 from src.database.config import Base
 from datetime import datetime
@@ -8,6 +8,7 @@ class UF(Base):
     id = Column(Integer, primary_key=True)
     sigla = Column(String(2), unique=True, nullable=False)
     nome = Column(String(50), unique=True, nullable=False)
+    vagas = relationship("Vaga", back_populates="uf")
 
 class Administrador(Base):
     __tablename__ = "admins"
@@ -24,9 +25,11 @@ class Vaga(Base):
     descricao = Column(Text, nullable=True)
     data_termino = Column(Date, nullable=True)
     uf_id = Column(Integer, ForeignKey("ufs.id"), nullable=False)
+    ativo = Column(Boolean, default=True)
     
-    uf = relationship("UF")
-    inscricoes = relationship("Inscricao", back_populates="vaga", cascade="all, delete")
+    # lazy='joined' garante que a UF venha junto com a vaga
+    uf = relationship("UF", back_populates="vagas", lazy='joined')
+    inscricoes = relationship("Inscricao", back_populates="vaga")
     
     __table_args__ = (UniqueConstraint('titulo', 'cidade', 'uf_id', name='_vaga_uc'),)
 
@@ -37,11 +40,12 @@ class Candidato(Base):
     email = Column(String(100), unique=True, nullable=False)
     documento = Column(String(20), unique=True, nullable=False)
     celular = Column(String(20), nullable=True)
-    # Adicionados para suportar o formulário e a IA:
     genero = Column(String(20), nullable=True)
     resumo = Column(Text, nullable=True)
+    ativo = Column(Boolean, default=True)
     
     inscricoes = relationship("Inscricao", back_populates="candidato")
+    __table_args__ = (UniqueConstraint('documento', name='_candidato_cpf_uc'),)
 
 class Inscricao(Base):
     __tablename__ = "inscricoes"
@@ -50,8 +54,9 @@ class Inscricao(Base):
     vaga_id = Column(Integer, ForeignKey("vagas.id"), nullable=False)
     data = Column(DateTime, default=datetime.utcnow)
     feedback_ia = Column(Text, nullable=True)
+    ativo = Column(Boolean, default=True)
     
-    candidato = relationship("Candidato", back_populates="inscricoes")
-    vaga = relationship("Vaga", back_populates="inscricoes")
+    candidato = relationship("Candidato", back_populates="inscricoes", lazy='joined')
+    vaga = relationship("Vaga", back_populates="inscricoes", lazy='joined')
 
     __table_args__ = (UniqueConstraint('candidato_id', 'vaga_id', name='_insc_unica_uc'),)
