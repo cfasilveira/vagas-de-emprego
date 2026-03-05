@@ -1,31 +1,33 @@
 import requests
 
 class AIService:
-    def __init__(self, model="qwen2.5-coder:7b"):
-        # Gateway do Docker para o host local
+    def __init__(self, model="mistral-nemo:latest"):
+        # Gateway do Docker para o host (Ollama)
         self.url = "http://host.docker.internal:11434/api/generate"
         self.model = model
 
     def analisar_candidato(self, nome_vaga, descricao_vaga, resumo_experiencia):
         """
-        Analisa o currículo. Fail First: Se a IA falhar, o sistema continua operando.
+        Analisa o currículo usando Mistral-Nemo. 
+        Fail First: Se a IA falhar ou demorar, a inscrição prossegue.
         """
-        # 1. Validação Básica de Entrada
-        if not resumo_experiencia or len(resumo_experiencia) < 10:
-            return "Resumo insuficiente para uma análise técnica detalhada."
+        if not resumo_experiencia or len(resumo_experiencia) < 20:
+            return "Resumo insuficiente para análise técnica."
         
-        desc_vaga = descricao_vaga if descricao_vaga else "Descrição padrão do cargo."
+        desc_vaga = descricao_vaga if descricao_vaga else "Descrição padrão."
 
+        # Prompt estruturado para o estilo de resposta do Mistral
         prompt = f"""
-        Aja como um recrutador técnico rigoroso. 
+        [INST] Você é um Recrutador Técnico Sênior. Avalie este candidato:
+        
         VAGA: {nome_vaga}
-        DESCRIÇÃO: {desc_vaga}
-        RESUMO CANDIDATO: {resumo_experiencia}
+        REQUISITOS: {desc_vaga}
+        RESUMO DO CANDIDATO: {resumo_experiencia}
 
-        Gere um feedback técnico em PT-BR com 3 frases curtas:
-        1. Match %: Estimativa de aderência.
-        2. Ponto Forte: O maior destaque técnico.
-        3. Ponto de Atenção: O que falta ou deve ser validado.
+        Retorne EXATAMENTE 3 frases em PT-BR:
+        1. SCORE: (0-100% de match).
+        2. FORTE: O maior diferencial técnico.
+        3. GAP: O que falta para a vaga. [/INST]
         """
         
         try:
@@ -34,17 +36,20 @@ class AIService:
                 json={
                     "model": self.model,
                     "prompt": prompt,
-                    "stream": False
+                    "stream": False,
+                    "options": {
+                        "temperature": 0.3, # Menos criatividade, mais consistência
+                        "num_ctx": 4096
+                    }
                 },
-                timeout=30 # Tempo limite para evitar travar o app Streamlit
+                timeout=60 # Aumentado para o Mistral-Nemo (12B)
             )
             
             if response.status_code == 200:
-                return response.json().get('response', "Análise concluída sem texto de retorno.")
+                return response.json().get('response', "Análise indisponível.")
             
-            return f"⚠️ IA em Manutenção (Status {response.status_code}). Inscrição processada normalmente."
+            return f"⚠️ IA Temporariamente Offline (Status {response.status_code})."
             
         except Exception as e:
-            # FAIL FIRST: O sistema de recrutamento é mais importante que a IA.
-            # Se a conexão falhar, retornamos uma mensagem amigável sem interromper o banco.
-            return "🤖 IA temporariamente offline. A análise técnica será processada em breve."
+            # Fallback para não travar o banco de dados
+            return f"🤖 IA em processamento. (Erro: {str(e)[:15]})"

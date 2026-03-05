@@ -4,76 +4,76 @@ from src.ai_service import AIService
 from datetime import datetime
 from sqlalchemy import or_
 
+def normalizar_genero(txt):
+    """Padroniza a string de gênero para evitar sujeira no banco."""
+    if not txt: return "Outro"
+    clean = str(txt).strip().upper()
+    if clean in ['M', 'MASCULINO']: return 'Masculino'
+    if clean in ['F', 'FEMININO']: return 'Feminino'
+    return 'Outro'
+
 def realizar_inscricao(vaga_id, dados):
     ai = AIService()
+    genero_limpo = normalizar_genero(dados.get('genero'))
     
     try:
         with get_db() as db:
-            # 1. FAIL FIRST: Verifica se a vaga existe antes de qualquer processamento
             vaga = db.query(Vaga).filter(Vaga.id == vaga_id).first()
             if not vaga: 
-                print(f"❌ Erro: Vaga ID {vaga_id} não encontrada.")
+                print(f"❌ Erro: Vaga {vaga_id} inexistente.")
                 return False
 
-            # 2. BUSCA INTELIGENTE: Evita UniqueViolation de CPF ou E-mail
-            # Procuramos por um candidato que tenha o MESMO documento OU o MESMO e-mail
+            # Busca por CPF ou Email para evitar duplicados
             candidato = db.query(Candidato).filter(
-                or_(
-                    Candidato.documento == dados['documento'],
-                    Candidato.email == dados['email']
-                )
+                or_(Candidato.documento == dados['documento'], Candidato.email == dados['email'])
             ).first()
 
             if not candidato:
-                # Se não existe, cria um novo registro
                 candidato = Candidato(
                     nome=dados['nome'],
                     documento=dados['documento'],
                     email=dados['email'],
                     celular=dados['celular'],
-                    genero=dados['genero'],
+                    genero=genero_limpo,
                     resumo=dados['resumo'],
                     ativo=True
                 )
                 db.add(candidato)
-                db.flush() # Sincroniza para obter o ID sem fechar a transação
+                db.flush()
             else:
-                # Se já existe (pelo CPF ou E-mail), apenas atualizamos os dados para manter sincronia
+                # Atualização inteligente
                 candidato.nome = dados['nome']
-                candidato.email = dados['email']
-                candidato.celular = dados['celular']
+                candidato.genero = genero_limpo
                 candidato.resumo = dados['resumo']
                 db.flush()
 
-            # 3. IA ANALISA O MATCH (Com tratamento de erro interno no ai_service)
+            # IA analisa o resumo
             feedback_ia = ai.analisar_candidato(vaga.titulo, vaga.descricao, dados['resumo'])
 
-            # 4. IDEMPOTÊNCIA DE INSCRIÇÃO: Verifica se já existe inscrição ATIVA para ESTA vaga específica
-            inscricao_existente = db.query(Inscricao).filter(
+            # Verifica inscrição existente
+            insc_existente = db.query(Inscricao).filter(
                 Inscricao.candidato_id == candidato.id,
                 Inscricao.vaga_id == vaga.id,
                 Inscricao.ativo == True
             ).first()
 
-            if not inscricao_existente:
-                nova_inscricao = Inscricao(
+            if not insc_existente:
+                nova_insc = Inscricao(
                     candidato_id=candidato.id,
                     vaga_id=vaga.id,
                     data=datetime.utcnow(),
                     feedback_ia=feedback_ia,
                     ativo=True
                 )
-                db.add(nova_inscricao)
-                print(f"✅ Inscrição confirmada para {candidato.nome}")
+                db.add(nova_insc)
+                print(f"✅ Nova inscrição: {candidato.nome}")
             else:
-                # Atualiza o feedback da IA mesmo se já estiver inscrito (Refresh)
-                inscricao_existente.feedback_ia = feedback_ia
-                print(f"🔔 Inscrição atualizada para {candidato.nome}")
+                insc_existente.feedback_ia = feedback_ia
+                print(f"🔔 Inscrição atualizada: {candidato.nome}")
             
             db.commit()
             return True
 
     except Exception as e:
-        print(f"❌ Falha Crítica no Handler: {e}")
-        # O context manager do get_db() cuidará do rollback automaticamente
+        print(f"❌ Falha no Handler: {e}")
         return False
