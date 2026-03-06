@@ -1,6 +1,6 @@
 import streamlit as st
 import traceback
-from src.database import init_db
+from src.database import init_db  # Corrigido: Importa do pacote database, não do config
 from src.logger import log_audit
 from src.admin.auth import check_password
 from src.admin.views import render_admin_portal
@@ -14,11 +14,16 @@ def main():
     st.sidebar.title("🚀 Navegação")
     portal = st.sidebar.selectbox("Selecione o Portal:", ["Candidato: Buscar Vagas", "Admin: Painel de Controle"])
     st.sidebar.markdown("---")
-    st.sidebar.info("🤖 IA Engine: Qwen2.5-Coder pronta.")
+    
+    # Lógica de Status de IA na Sidebar Global (Exorcizando o Qwen)
+    if st.session_state.get('is_admin'):
+        st.sidebar.success("🤖 Mistral-Nemo (12B) Ativo")
+    else:
+        st.sidebar.info("🤖 Engine de Recrutamento Ativa")
 
     # 2. Lógica de Portais (Protegida)
     try:
-        init_db()
+        init_db()  # Agora ele vai encontrar a função
         if portal == "Candidato: Buscar Vagas":
             render_candidate_portal()
         else:
