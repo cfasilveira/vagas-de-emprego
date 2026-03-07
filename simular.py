@@ -1,50 +1,56 @@
-from src.database.config import SessionLocal
-from src.database.models import Vaga, UF, Candidato, Inscricao
-from src.database.seed import seed
-from src.candidate.handlers import realizar_inscricao
+import random
+from datetime import datetime, UTC
+from src.database.config import get_db
+from src.database.models import Vaga, UF, Inscricao, Candidato
 
-def simular_producao():
-    print("🧹 Limpando e Populando Massa de Dados BI...")
-    db = SessionLocal()
-    try:
-        db.query(Inscricao).delete()
-        db.query(Candidato).delete()
-        db.query(Vaga).delete()
-        db.commit()
+def rodar_simulacao_diversificada():
+    print("🚀 Iniciando simulação de dados...")
+    with get_db() as db:
+        ufs = {u.sigla: u.id for u in db.query(UF).all()}
+        if not ufs:
+            return print("❌ Erro: UFs não encontradas. Rode o seed.py primeiro.")
+
+        vagas_data = [
+            ("Dev Python Pleno", "SP", 9500.0, "FastAPI e Clean Architecture."),
+            ("Analista de Dados", "PR", 8000.0, "Pandas, SQL e PowerBI."),
+            ("Engenheiro Cloud", "SC", 13000.0, "Terraform e AWS."),
+            ("Cozinheiro", "MG", 3500.0, "Cozinha industrial e buffet profissional.")
+        ]
         
-        seed()
+        v_criadas = []
+        for t, s, sal, d in vagas_data:
+            v = Vaga(titulo=t, cidade="Hub Tech", uf_id=ufs[s], salario=sal, descricao=d, ativo=True)
+            db.add(v)
+            db.flush()
+            v_criadas.append(v)
 
-        uf_sp = db.query(UF).filter_by(sigla="SP").first()
-        uf_rj = db.query(UF).filter_by(sigla="RJ").first()
-        uf_go = db.query(UF).filter_by(sigla="GO").first()
-
-        # Criando Vagas Variadas
-        v1 = Vaga(titulo="Arquiteto Cloud", cidade="São Paulo", uf_id=uf_sp.id, ativo=True, salario=18000.0)
-        v2 = Vaga(titulo="Analista de Dados", cidade="Rio de Janeiro", uf_id=uf_rj.id, ativo=True, salario=9500.0)
-        v3 = Vaga(titulo="Dev Python", cidade="Goiânia", uf_id=uf_go.id, ativo=True, salario=11000.0)
-        db.add_all([v1, v2, v3])
-        db.commit()
-
-        # Massa de Candidatos (Diversidade de Gêneros e Estados)
-        candidatos = [
-            ("Ana Silva", "Expert AWS", v1.id, "101", "Feminino"),
-            ("Beatriz Tech", "Azure Specialist", v1.id, "102", "Feminino"),
-            ("Carlos Data", "SQL/Python", v2.id, "103", "Masculino"),
-            ("Daniela Python", "FastAPI", v3.id, "104", "Feminino"),
-            ("Eduardo Cloud", "DevOps", v1.id, "105", "Masculino"),
-            ("Alex Non-Binary", "Fullstack", v3.id, "106", "Outro")
+        cands_data = [
+            ("Ana Silva", "ana@test.com", "Feminino", "11988887777", "Expert em Python."),
+            ("Bruno Melo", "bruno@test.com", "Masculino", "41977776666", "Especialista em BI."),
+            ("Carla Souza", "carla@test.com", "Feminino", "48966665555", "Foco em Cloud."),
+            ("Diego Lima", "diego@test.com", "Masculino", "31955554444", "Cozinheiro profissional.")
         ]
 
-        print("🤖 IA processando inscrições...")
-        for n, r, v, d, g in candidatos:
-            realizar_inscricao(v, {
-                "nome": n, "documento": d, "email": f"{d}@teste.com", 
-                "genero": g, "resumo": r, "celular": "1198888"
-            })
+        for nome, email, gen, tel, pitch in cands_data:
+            c = Candidato(
+                nome=nome, email=email, 
+                documento=f"CPF-{random.randint(100,999)}", 
+                genero=gen, telefone=tel, resumo=pitch
+            )
+            db.add(c)
+            db.flush()
             
-        print("✨ Simulação BI finalizada com sucesso!")
-    finally:
-        db.close()
+            v_alvo = random.choice(v_criadas)
+            score = random.randint(45, 98)
+            db.add(Inscricao(
+                candidato_id=c.id, 
+                vaga_id=v_alvo.id, 
+                feedback_ia=f"SCORE: {score}% | Candidato com ótimo perfil para a vaga.",
+                data=datetime.now(UTC)
+            ))
+        
+        db.commit()
+        print(f"✅ Sucesso! Estrutura atualizada e dados inseridos.")
 
 if __name__ == "__main__":
-    simular_producao()
+    rodar_simulacao_diversificada()
