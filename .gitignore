@@ -1,4 +1,4 @@
-# --- Segurança e Credenciais ---
+d# --- Segurança e Credenciais ---
 # Nunca envie senhas, chaves de API ou URLs de banco de dados
 .env
 *.pem
@@ -30,3 +30,6 @@ __pycache__/
 .trash/
 data/
 pgdata/
+
+# Arquivos txt
+*.txt
