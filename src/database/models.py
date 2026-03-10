@@ -14,7 +14,7 @@ class Administrador(Base):
     __tablename__ = "administradores"
     id = Column(Integer, primary_key=True)
     login = Column(CITEXT, unique=True, nullable=False)
-    senha = Column(String(255), nullable=False)
+    senha_hash = Column(String(255), nullable=False)
 
 class TipoTrabalho(Base):
     __tablename__ = "tipos_trabalho"
@@ -30,6 +30,7 @@ class Vaga(Base):
     salario = Column(Float)
     ativo = Column(Boolean, default=True)
     uf_id = Column(Integer, ForeignKey("ufs.id"))
+    uf = relationship("UF")
     tipo_trabalho_id = Column(Integer, ForeignKey("tipos_trabalho.id"), nullable=False)
     quantidade_vagas = Column(Integer, default=1)
 
@@ -60,6 +61,9 @@ class Inscricao(Base):
     id = Column(Integer, primary_key=True)
     candidato_id = Column(Integer, ForeignKey("candidatos.id", ondelete="CASCADE"))
     vaga_id = Column(Integer, ForeignKey("vagas.id", ondelete="CASCADE"))
+    candidato = relationship("Candidato")
+    vaga = relationship("Vaga")
+    vaga = relationship("Vaga")
     resumo_submetido = Column(Text, nullable=False) # Snapshot do currículo no ato da inscrição
-    feedback_ia = Column(String(10)) # Ex: "85%"
+    feedback_ia = Column(Text) # Ex: "85%"
     data = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC).replace(microsecond=0))
