@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean, Text, Float
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean, Text, Float, CheckConstraint, CHAR
+from sqlalchemy.dialects.postgresql import CITEXT
 from sqlalchemy.orm import relationship
 from src.database.config import Base
 from datetime import datetime, UTC
@@ -6,40 +7,59 @@ from datetime import datetime, UTC
 class UF(Base):
     __tablename__ = "ufs"
     id = Column(Integer, primary_key=True)
-    sigla = Column(String(2), unique=True, nullable=False)
+    sigla = Column(CHAR(2), unique=True, nullable=False)
     nome = Column(String(50), nullable=False)
 
 class Administrador(Base):
     __tablename__ = "administradores"
     id = Column(Integer, primary_key=True)
-    login = Column(String(50), unique=True, nullable=False)
-    senha_hash = Column(String(255), nullable=False)
+    login = Column(CITEXT, unique=True, nullable=False)
+    senha = Column(String(255), nullable=False)
+
+class TipoTrabalho(Base):
+    __tablename__ = "tipos_trabalho"
+    id = Column(Integer, primary_key=True)
+    nome = Column(String(20), unique=True, nullable=False)
 
 class Vaga(Base):
     __tablename__ = "vagas"
     id = Column(Integer, primary_key=True)
-    titulo = Column(String(100), nullable=False)
+    titulo = Column(CITEXT, nullable=False)
     descricao = Column(Text, nullable=False)
     cidade = Column(String(100))
     salario = Column(Float)
     ativo = Column(Boolean, default=True)
-    uf_id = Column(Integer, ForeignKey("ufs.id")) # Sincronizado com simular.py
+    uf_id = Column(Integer, ForeignKey("ufs.id"))
+    tipo_trabalho_id = Column(Integer, ForeignKey("tipos_trabalho.id"), nullable=False)
+    quantidade_vagas = Column(Integer, default=1)
 
 class Candidato(Base):
     __tablename__ = "candidatos"
     id = Column(Integer, primary_key=True)
-    nome = Column(String(100), nullable=False)
-    email = Column(String(100), unique=True, nullable=False)
-    documento = Column(String(20)) # Sincronizado com simular.py
-    genero = Column(String(20))    # Sincronizado com simular.py (String direta)
-    telefone = Column(String(20))
-    resumo = Column(Text)
-    endereco = Column(String(255))
+    nome = Column(CITEXT, nullable=False)
+    email = Column(CITEXT, unique=True, nullable=False)
+    cpf = Column(CHAR(11), nullable=False)
+    genero = Column(CHAR(1), nullable=False) # 'M' ou 'F'
+    telefone = Column(String(11), nullable=False)
+    resumo = Column(String(2000), nullable=False)
+    logradouro = Column(String(150), nullable=False)
+    numero = Column(String(20), nullable=False)
+    complemento = Column(String(100))
+    bairro = Column(String(100), nullable=False)
+    cidade = Column(String(100), nullable=False)
+    cep = Column(CHAR(8), nullable=False)
+    uf_residencia_id = Column(Integer, ForeignKey("ufs.id"), nullable=False)
+
+    __table_args__ = (
+        CheckConstraint("genero IN ('M', 'F')", name="check_genero_mf"),
+        CheckConstraint("cpf ~ '^[0-9]{11}$'", name="check_cpf_numerico"),
+    )
 
 class Inscricao(Base):
     __tablename__ = "inscricoes"
     id = Column(Integer, primary_key=True)
-    candidato_id = Column(Integer, ForeignKey("candidatos.id"))
-    vaga_id = Column(Integer, ForeignKey("vagas.id"))
-    feedback_ia = Column(Text)
-    data = Column(DateTime, default=lambda: datetime.now(UTC))
+    candidato_id = Column(Integer, ForeignKey("candidatos.id", ondelete="CASCADE"))
+    vaga_id = Column(Integer, ForeignKey("vagas.id", ondelete="CASCADE"))
+    resumo_submetido = Column(Text, nullable=False) # Snapshot do currículo no ato da inscrição
+    feedback_ia = Column(String(10)) # Ex: "85%"
+    data = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC).replace(microsecond=0))
