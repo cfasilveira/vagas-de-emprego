@@ -1,3 +1,18 @@
+Para evitar que eu cometa esse erro novamente, precisamos estabelecer um Protocolo de Simulação de 
+Impacto antes de qualquer nova alteração.
+
+    Mapeamento de Dependências (O que eu deveria ter feito): Antes de eu sugerir mudar uma função, 
+eu DEVO verificar todos os arquivos que a importam.
+
+    O Comando de "Dry-Run" (Simulação): Antes de você aplicar qualquer cat que eu enviar, eu 
+fornecerei um comando de busca (grep) para você rodar. Se o grep retornar locais que eu não previ, 
+a alteração é cancelada.
+
+Mapeamento de Dependências, liste os scripts q vc precisa analisar e faca 1 Dry-Run antes de qquer 
+alteracao. Determine a estencao desse erro e analise a melhor solucao.
+
+/////////////////////////////////////////////////////\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
 #Analise junto aos maiores especialistas mundiais em:
 
 - gerenciamento de projetos para web,

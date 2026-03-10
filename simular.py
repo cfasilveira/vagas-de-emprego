@@ -1,56 +1,67 @@
+from src.database.config import SessionLocal
+from src.database.models import Candidato, Inscricao, Vaga, UF
 import random
-from datetime import datetime, UTC
-from src.database.config import get_db
-from src.database.models import Vaga, UF, Inscricao, Candidato
 
-def rodar_simulacao_diversificada():
-    print("🚀 Iniciando simulação de dados...")
-    with get_db() as db:
-        ufs = {u.sigla: u.id for u in db.query(UF).all()}
-        if not ufs:
-            return print("❌ Erro: UFs não encontradas. Rode o seed.py primeiro.")
+def enriquecer_e_popular():
+    db = SessionLocal()
+    
+    # 1. Enriquecer as descrições das Vagas para permitir o Match
+    # Isso garante que a vaga tenha palavras que o candidato possa dar match
+    vagas = db.query(Vaga).all()
+    termos_por_vaga = {
+        "Python": "Desenvolvimento Python Django Flask FastAPI SQL Docker APIs Rest",
+        "Data": "Análise de dados Python Pandas extração SQL ETL Dashboards estatística",
+        "RH": "Recrutamento seleção gestão de pessoas treinamento RH indicadores",
+        "Sistemas": "Infraestrutura redes segurança Linux servidores suporte técnico",
+        "Designer": "UI UX Design prototipagem Figma interfaces usabilidade frontend"
+    }
 
-        vagas_data = [
-            ("Dev Python Pleno", "SP", 9500.0, "FastAPI e Clean Architecture."),
-            ("Analista de Dados", "PR", 8000.0, "Pandas, SQL e PowerBI."),
-            ("Engenheiro Cloud", "SC", 13000.0, "Terraform e AWS."),
-            ("Cozinheiro", "MG", 3500.0, "Cozinha industrial e buffet profissional.")
-        ]
-        
-        v_criadas = []
-        for t, s, sal, d in vagas_data:
-            v = Vaga(titulo=t, cidade="Hub Tech", uf_id=ufs[s], salario=sal, descricao=d, ativo=True)
-            db.add(v)
-            db.flush()
-            v_criadas.append(v)
+    for v in vagas:
+        for chave, texto in termos_por_vaga.items():
+            if chave.lower() in v.titulo.lower():
+                v.descricao = f"{v.titulo}. Requisitos: {texto}"
+    
+    db.commit()
+    print("Vagas enriquecidas com descrições técnicas.")
 
-        cands_data = [
-            ("Ana Silva", "ana@test.com", "Feminino", "11988887777", "Expert em Python."),
-            ("Bruno Melo", "bruno@test.com", "Masculino", "41977776666", "Especialista em BI."),
-            ("Carla Souza", "carla@test.com", "Feminino", "48966665555", "Foco em Cloud."),
-            ("Diego Lima", "diego@test.com", "Masculino", "31955554444", "Cozinheiro profissional.")
-        ]
+    # 2. Novos candidatos com descrições compatíveis
+    novos_dados = [
+        ("Mariana Costa", "Feminino", "mariana.c@email.com", "Experiente em Python, Django e criação de APIs Rest com Docker."),
+        ("Ricardo Oliveira", "Masculino", "ricardo.o@email.com", "Especialista em infraestrutura de redes, Linux e segurança de servidores."),
+        ("Carla Souza", "Feminino", "carla.s@email.com", "Gestão de pessoas, recrutamento e seleção de talentos para RH."),
+        ("Fernando Dias", "Masculino", "fernando.d@email.com", "Desenvolvedor Backend Python focado em SQL, Docker e FastAPI."),
+        ("Beatriz Lima", "Feminino", "beatriz.l@email.com", "Cientista de dados, análise estatística com Pandas, Python e SQL."),
+        ("André Santos", "Masculino", "andre.s@email.com", "Engenheiro de software, APIs Rest, Python e bancos de dados SQL."),
+        ("Juliana Rocha", "Feminino", "juliana.r@email.com", "Designer de interfaces UI UX, prototipagem no Figma e usabilidade."),
+        ("Marcos Vinícius", "Masculino", "marcos.v@email.com", "Estagiário de tecnologia com curso de Python e lógica de SQL."),
+        ("Patrícia Gomes", "Feminino", "patricia.g@email.com", "Liderança técnica em TI, gestão de projetos e desenvolvimento Python."),
+        ("Tiago Barbosa", "Masculino", "tiago.b@email.com", "Segurança da informação, redes de computadores e scripts em Python.")
+    ]
 
-        for nome, email, gen, tel, pitch in cands_data:
-            c = Candidato(
-                nome=nome, email=email, 
-                documento=f"CPF-{random.randint(100,999)}", 
-                genero=gen, telefone=tel, resumo=pitch
+    for nome, genero, email, resumo in novos_dados:
+        # Evita duplicidade
+        if not db.query(Candidato).filter(Candidato.email == email).first():
+            cand = Candidato(
+                nome=nome, genero=genero, email=email,
+                documento=f"{random.randint(100,999)}.000.000-00",
+                telefone=f"(11) 9{random.randint(7000,9999)}-0000",
+                resumo=resumo
             )
-            db.add(c)
+            db.add(cand)
             db.flush()
+
+            # Vincula à vaga mais adequada pelo título
+            vaga_alvo = random.choice(vagas)
+            for v in vagas:
+                if any(palavra in cand.resumo.lower() for palavra in v.titulo.lower().split()):
+                    vaga_alvo = v
+                    break
             
-            v_alvo = random.choice(v_criadas)
-            score = random.randint(45, 98)
-            db.add(Inscricao(
-                candidato_id=c.id, 
-                vaga_id=v_alvo.id, 
-                feedback_ia=f"SCORE: {score}% | Candidato com ótimo perfil para a vaga.",
-                data=datetime.now(UTC)
-            ))
-        
-        db.commit()
-        print(f"✅ Sucesso! Estrutura atualizada e dados inseridos.")
+            db.add(Inscricao(candidato_id=cand.id, vaga_id=vaga_alvo.id, feedback_ia="Análise técnica positiva."))
+
+    db.commit()
+    db.close()
+    print("Sucesso! Vagas atualizadas e 10 novos candidatos inseridos com currículos compatíveis.")
 
 if __name__ == "__main__":
-    rodar_simulacao_diversificada()
+    enriquecer_e_popular()
