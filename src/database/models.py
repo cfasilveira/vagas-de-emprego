@@ -40,7 +40,7 @@ class Candidato(Base):
     nome = Column(CITEXT, nullable=False)
     email = Column(CITEXT, unique=True, nullable=False)
     cpf = Column(CHAR(11), nullable=False)
-    genero = Column(CHAR(1), nullable=False) # 'M' ou 'F'
+    genero = Column(CHAR(1), nullable=False)
     telefone = Column(String(11), nullable=False)
     resumo = Column(String(2000), nullable=False)
     logradouro = Column(String(150), nullable=False)
@@ -50,6 +50,8 @@ class Candidato(Base):
     cidade = Column(String(100), nullable=False)
     cep = Column(CHAR(8), nullable=False)
     uf_residencia_id = Column(Integer, ForeignKey("ufs.id"), nullable=False)
+    # Relacionamento para acessar a UF real do candidato
+    uf_residencia = relationship("UF")
 
     __table_args__ = (
         CheckConstraint("genero IN ('M', 'F')", name="check_genero_mf"),
@@ -63,7 +65,6 @@ class Inscricao(Base):
     vaga_id = Column(Integer, ForeignKey("vagas.id", ondelete="CASCADE"))
     candidato = relationship("Candidato")
     vaga = relationship("Vaga")
-    vaga = relationship("Vaga")
-    resumo_submetido = Column(Text, nullable=False) # Snapshot do currículo no ato da inscrição
-    feedback_ia = Column(Text) # Ex: "85%"
+    resumo_submetido = Column(Text, nullable=False)
+    feedback_ia = Column(Text)
     data = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC).replace(microsecond=0))
