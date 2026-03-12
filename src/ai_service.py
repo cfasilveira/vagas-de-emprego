@@ -1,40 +1,36 @@
+import os
 import requests
-import json
 
 class AIService:
     def __init__(self):
-        # Endereço para o app dentro do Docker falar com o Ollama no Host Linux
-        self.url = "http://host.docker.internal:11434/api/generate"
-        self.model = "mistral-nemo:latest"
+        self.use_ollama = True 
+        # Alterado para host.docker.internal para funcionar dentro do container
+        self.ollama_url = "http://host.docker.internal:11434/api/generate" 
+        print("IA: Configurada para usar Ollama via API REST (Docker Host)")
 
     def analisar_candidato(self, titulo_vaga, descricao_vaga, resumo_candidato):
         prompt = f"""
-        [INST]
-        Atue como um Recrutador Especialista Tech. 
-        Analise o match entre a vaga e o candidato.
+        Compare o RESUMO DO CANDIDATO com a VAGA:
+        VAGA: {titulo_vaga} | DESCRIÇÃO: {descricao_vaga}
+        RESUMO: {resumo_candidato}
         
-        VAGA: {titulo_vaga}
-        DESCRIÇÃO: {descricao_vaga}
-        RESUMO CANDIDATO: {resumo_candidato}
-        
-        Responda obrigatoriamente neste formato:
-        SCORE: [0-100]%
-        PARECER: [Máximo 2 frases sobre o match]
-        [/INST]
+        REGRAS:
+        1. Se o termo está no resumo, considere experiência confirmada.
+        2. SCORE < 90%: Liste o que NÃO foi encontrado no resumo.
+        3. SCORE >= 90%: Destaque pontos fortes.
+        FORMATO:
+        SCORE: [X]%
+        PARECER: [Sua análise em até 3 frases]
         """
-        
-        payload = {
-            "model": self.model,
-            "prompt": prompt,
-            "stream": False,
-            "options": {"temperature": 0.2}
-        }
-
         try:
-            r = requests.post(self.url, json=payload, timeout=80)
-            if r.status_code == 200:
-                return r.json().get('response', "SCORE: 0% | Erro no processamento.")
-            else:
-                return f"SCORE: 0% | Erro Ollama: {r.status_code}"
+            payload = {
+                "model": "mistral",
+                "prompt": prompt,
+                "stream": False,
+                "options": {"temperature": 0.1}
+            }
+            response = requests.post(self.ollama_url, json=payload, timeout=45)
+            response.raise_for_status()
+            return response.json().get('response', '')
         except Exception as e:
-            return f"SCORE: 0% | IA Offline: {str(e)}"
+            return f"SCORE: 0% \nPARECER: Erro na conexão com Ollama: {str(e)}"
