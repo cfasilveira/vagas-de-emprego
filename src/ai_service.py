@@ -4,9 +4,9 @@ import requests
 class AIService:
     def __init__(self):
         self.use_ollama = True 
-        # Alterado para host.docker.internal para funcionar dentro do container
-        self.ollama_url = "http://host.docker.internal:11434/api/generate" 
-        print("IA: Configurada para usar Ollama via API REST (Docker Host)")
+        # No Linux, 172.17.0.1 acessa o host que redireciona para o container do Ollama
+        self.ollama_url = "http://172.17.0.1:11434/api/generate" 
+        print("IA: Conectando ao ollama-service via 172.17.0.1")
 
     def analisar_candidato(self, titulo_vaga, descricao_vaga, resumo_candidato):
         prompt = f"""
@@ -24,13 +24,14 @@ class AIService:
         """
         try:
             payload = {
-                "model": "mistral",
+                "model": "mistral-nemo",
                 "prompt": prompt,
                 "stream": False,
                 "options": {"temperature": 0.1}
             }
-            response = requests.post(self.ollama_url, json=payload, timeout=45)
+            # Timeout de 60s para o mistral-nemo processar
+            response = requests.post(self.ollama_url, json=payload, timeout=60)
             response.raise_for_status()
             return response.json().get('response', '')
         except Exception as e:
-            return f"SCORE: 0% \nPARECER: Erro na conexão com Ollama: {str(e)}"
+            return f"SCORE: 0% \nPARECER: Erro na conexão: {str(e)}"

@@ -27,6 +27,8 @@ class Vaga(Base):
     uf = relationship("UF")
     data_criacao = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC).replace(microsecond=0))
     data_expiracao = Column(DateTime(timezone=True))
+    # Relacao para facilitar calculo de media
+    candidatos = relationship("Candidato", back_populates="vaga")
 
 class Candidato(Base):
     __tablename__ = "candidatos"
@@ -37,7 +39,7 @@ class Candidato(Base):
     genero = Column(String(20))
     resumo = Column(Text, nullable=False)
     vaga_id = Column(Integer, ForeignKey("vagas.id"), nullable=False)
-    vaga = relationship("Vaga")
+    vaga = relationship("Vaga", back_populates="candidatos")
     score_ia = Column(Integer)
     parecer_ia = Column(Text)
     data = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC).replace(microsecond=0))
