@@ -62,13 +62,51 @@ def render_admin_portal():
             if vagas_all:
                 total_v = len(vagas_all)
                 total_c = len(cands_all)
-                v_enc = len([v for v in vagas_all if not v.ativa])
-                perc_p = (v_enc / total_v * 100) if total_v > 0 else 0
                 
-                kpi1, kpi2, kpi3 = st.columns(3)
-                kpi1.metric("Total Vagas", total_v)
-                kpi2.metric("Total Candidatos", total_c)
-                kpi3.metric("% Vagas Preenchidas", f"{perc_p:.1f}%")
+                # Cálculos de KPI
+                df_vagas = pd.DataFrame([{"UF": v.uf.sigla, "Titulo": v.titulo} for v in vagas_all])
+                uf_mais_vagas = df_vagas["UF"].value_counts(normalize=True).idxmax()
+                perc_uf_vagas = df_vagas["UF"].value_counts(normalize=True).max() * 100
+
+                if total_c > 0:
+                    df_cands = pd.DataFrame([{"UF": c.vaga.uf.sigla, "Vaga": c.vaga.titulo} for c in cands_all])
+                    uf_mais_cands = df_cands["UF"].value_counts(normalize=True).idxmax()
+                    perc_uf_cands = df_cands["UF"].value_counts(normalize=True).max() * 100
+                    
+                    vaga_counts = df_cands["Vaga"].value_counts(normalize=True)
+                    vaga_mais_disp = vaga_counts.idxmax()
+                    perc_vaga_mais = vaga_counts.max() * 100
+                    vaga_menos_disp = vaga_counts.idxmin()
+                    perc_vaga_menos = vaga_counts.min() * 100
+                else:
+                    uf_mais_cands, perc_uf_cands = "N/A", 0
+                    vaga_mais_disp, perc_vaga_mais = "N/A", 0
+                    vaga_menos_disp, perc_vaga_menos = "N/A", 0
+
+                # Linha 1: KPIs Gerais
+                k1, k2, k3 = st.columns(3)
+                k1.metric("Total Vagas", total_v)
+                k2.metric("Total Candidatos", total_c)
+                v_enc = len([v for v in vagas_all if not v.ativa])
+                k3.metric("% Vagas Preenchidas", f"{(v_enc/total_v*100):.1f}%")
+                
+                st.write("---")
+                
+                # Linha 2: Blocos Geográfico e de Disputa
+                col_geo, col_disp = st.columns(2)
+                
+                with col_geo:
+                    st.write("**📍 Por Região (UF)**")
+                    kg1, kg2 = st.columns(2)
+                    kg1.metric("Mais Vagas", f"{uf_mais_vagas}", f"{perc_uf_vagas:.0f}%")
+                    kg2.metric("Mais Candidatos", f"{uf_mais_cands}", f"{perc_uf_cands:.0f}%")
+                
+                with col_disp:
+                    st.write("**🔥 Por Ocupação (Vagas)**")
+                    kd1, kd2 = st.columns(2)
+                    kd1.metric("Maior Procura", f"{vaga_mais_disp[:12]}...", f"{perc_vaga_mais:.0f}%")
+                    kd2.metric("Menor Procura", f"{vaga_menos_disp[:12]}...", f"{perc_vaga_menos:.0f}%")
+                
                 st.divider()
 
             if cands_all:
@@ -83,11 +121,9 @@ def render_admin_portal():
 
                 col_l, col_r = st.columns(2)
                 with col_l:
-                    # Score Médio por Vaga (agora ocupando o lado esquerdo)
                     df_qual = df.groupby("Vaga")["Score"].mean().reset_index()
                     st.plotly_chart(px.bar(df_qual, x="Vaga", y="Score", title="Score Médio por Vaga"), use_container_width=True)
                 with col_r:
-                    # Diversidade por Gênero em gráfico de Pizza (setores)
                     df_gen = df.groupby("Genero").size().reset_index(name="Qtd")
                     st.plotly_chart(px.pie(df_gen, values="Qtd", names="Genero", title="Distribuição de Gênero"), use_container_width=True)
             else:
