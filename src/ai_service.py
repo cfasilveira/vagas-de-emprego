@@ -1,12 +1,17 @@
 import os
 import requests
+from google import genai
 
 class AIService:
     def __init__(self):
-        self.use_ollama = True 
-        # No Linux, 172.17.0.1 acessa o host que redireciona para o container do Ollama
-        self.ollama_url = "http://172.17.0.1:11434/api/generate" 
-        print("IA: Conectando ao ollama-service via 172.17.0.1")
+        self.api_key = os.getenv("GOOGLE_API_KEY")
+        self.ollama_url = "http://172.17.0.1:11434/api/generate"
+        
+        if self.api_key:
+            self.client = genai.Client(api_key=self.api_key)
+            print("IA: Usando Google GenAI SDK (Nuvem)")
+        else:
+            print("IA: Usando Ollama (Local)")
 
     def analisar_candidato(self, titulo_vaga, descricao_vaga, resumo_candidato):
         prompt = f"""
@@ -22,16 +27,25 @@ class AIService:
         SCORE: [X]%
         PARECER: [Sua análise em até 3 frases]
         """
-        try:
-            payload = {
-                "model": "mistral-nemo",
-                "prompt": prompt,
-                "stream": False,
-                "options": {"temperature": 0.1}
-            }
-            # Timeout de 60s para o mistral-nemo processar
-            response = requests.post(self.ollama_url, json=payload, timeout=60)
-            response.raise_for_status()
-            return response.json().get('response', '')
-        except Exception as e:
-            return f"SCORE: 0% \nPARECER: Erro na conexão: {str(e)}"
+        
+        if self.api_key:
+            try:
+                response = self.client.models.generate_content(
+                    model="gemini-1.5-flash", contents=prompt
+                )
+                return response.text
+            except Exception as e:
+                return f"SCORE: 0% \nPARECER: Erro Gemini: {str(e)}"
+        else:
+            try:
+                payload = {
+                    "model": "mistral-nemo",
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {"temperature": 0.1}
+                }
+                response = requests.post(self.ollama_url, json=payload, timeout=60)
+                response.raise_for_status()
+                return response.json().get('response', '')
+            except Exception as e:
+                return f"SCORE: 0% \nPARECER: Erro Ollama: {str(e)}"
