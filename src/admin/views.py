@@ -28,7 +28,6 @@ def render_admin_portal():
                     scores = [c.score_ia for c in v.candidatos if c.score_ia is not None]
                     media = sum(scores) / len(scores) if scores else 0
                     
-                    # CORREÇÃO CIRÚRGICA: Cálculo do tempo ativa garantindo a extração de dias
                     delta = agora - v.data_criacao
                     dias_ativa = max(0, delta.days) 
                     
@@ -127,21 +126,36 @@ def render_admin_portal():
                 col_l, col_r = st.columns(2)
                 with col_l:
                     df_qual = df_filtered.groupby("Vaga")["Score"].mean().reset_index()
-                    st.plotly_chart(px.bar(df_qual, x="Vaga", y="Score", title="Score Médio por Vaga"), use_container_width=True)
+                    fig_score = px.bar(df_qual, x="Vaga", y="Score", title="Score Médio por Vaga", text_auto='.1f')
+                    fig_score.update_traces(textposition='outside')
+                    fig_score.update_layout(yaxis={'visible': False}, xaxis={'title': None}, yaxis_range=[0, 115], showlegend=False, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
+                    fig_score.update_xaxes(showgrid=False)
+                    fig_score.update_yaxes(showgrid=False)
+                    st.plotly_chart(fig_score, use_container_width=True)
+                    
                 with col_r:
                     df_gen = df_filtered.groupby("Genero").size().reset_index(name="Qtd")
                     st.plotly_chart(px.pie(df_gen, values="Qtd", names="Genero", title="Distribuição de Gênero"), use_container_width=True)
                 
-                # ADIÇÃO CIRÚRGICA: Dois gráficos de UF na base do BI
                 st.write("---")
                 c1, c2 = st.columns(2)
                 with c1:
                     df_v_uf = df_vagas_filtered.groupby("UF").size().reset_index(name="Quantidade")
-                    st.plotly_chart(px.bar(df_v_uf, x="UF", y="Quantidade", title="Vagas por UF", color_discrete_sequence=['#00CC96']), use_container_width=True)
+                    fig_v_uf = px.bar(df_v_uf, x="UF", y="Quantidade", title="Vagas por UF", color_discrete_sequence=['#00CC96'], text_auto=True)
+                    fig_v_uf.update_traces(textposition='outside')
+                    fig_v_uf.update_layout(yaxis={'visible': False}, xaxis={'title': None}, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
+                    fig_v_uf.update_xaxes(showgrid=False)
+                    fig_v_uf.update_yaxes(showgrid=False)
+                    st.plotly_chart(fig_v_uf, use_container_width=True)
+                    
                 with c2:
-                    # NOVO GRÁFICO: Candidatos por UF (usando o filtro de vaga)
                     df_c_uf = df_filtered.groupby("UF").size().reset_index(name="Candidatos")
-                    st.plotly_chart(px.bar(df_c_uf, x="UF", y="Candidatos", title="Candidatos por UF", color_discrete_sequence=['#636EFA']), use_container_width=True)
+                    fig_c_uf = px.bar(df_c_uf, x="UF", y="Candidatos", title="Candidatos por UF", color_discrete_sequence=['#636EFA'], text_auto=True)
+                    fig_c_uf.update_traces(textposition='outside')
+                    fig_c_uf.update_layout(yaxis={'visible': False}, xaxis={'title': None}, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
+                    fig_c_uf.update_xaxes(showgrid=False)
+                    fig_c_uf.update_yaxes(showgrid=False)
+                    st.plotly_chart(fig_c_uf, use_container_width=True)
             else:
                 st.info("Aguardando novos candidatos para gerar gráficos.")
     finally:
