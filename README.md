@@ -11,21 +11,19 @@ pinned: false
 
 # 🎯 RH Inteligente: Gestão de Vagas com IA
 
-Sistema moderno de recrutamento e seleção que utiliza Inteligência Artificial (Gemini ou Ollama) para análise de candidatos.
+Sistema moderno de recrutamento e seleção que utiliza Inteligência Artificial (Gemini ou Ollama) para análise de candidatos e Dashboard de BI.
 
 ## 🚀 Tecnologias
 - **IA:** Google GenAI (Gemini) / Ollama
 - **DB:** PostgreSQL + SQLAlchemy
 - **Painel:** Streamlit + Plotly Express (Clean Design)
 
-## 🛠️ Configuração na Nuvem
-Para o funcionamento correto no Hugging Face, configure as **Variables and Secrets**:
-1. `DATABASE_URL`: URL do seu banco PostgreSQL (com SSL habilitado).
-2. `GOOGLE_API_KEY`: Sua chave do Gemini (opcional, ativa o modo nuvem).
+## 🛠️ Configuração na Nuvem (Hugging Face)
+Para o funcionamento correto, configura as **Variables and Secrets** no painel do Space:
+1. `DATABASE_URL`: URL do teu banco PostgreSQL externo (ex: Supabase, Render, Neon).
+2. `GOOGLE_API_KEY`: Tua chave do Gemini (opcional, ativa o modo nuvem).
 
-## 🌟 Diferenciais
-- Dashboard executivo com filtros dinâmicos.
-- Suporte a modelos de IA locais e em nuvem.
-- Interface otimizada para dispositivos móveis e desktop.
+## 🌟 Como o Deploy funciona
+Este Space utiliza o SDK nativo do Streamlit. O arquivo principal é o `main.py` e as dependências são geridas automaticamente a partir do `pyproject.toml` via `uv`.
 
 ---
