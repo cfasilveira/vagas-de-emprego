@@ -26,7 +26,12 @@ def render_candidate_portal():
         with col_detalhe:
             st.subheader("📄 Detalhes da Vaga")
             st.markdown(f"### {vaga_sel.titulo}")
-            st.write(f"**Local:** {vaga_sel.cidade}/{vaga_sel.uf.sigla}")
+            
+            # Cidade e UF na mesma linha
+            c1, c2 = st.columns(2)
+            c1.write(f"**📍 Cidade:** {vaga_sel.cidade}")
+            c2.write(f"**🚩 UF:** {vaga_sel.uf.sigla}")
+            
             st.write(f"**Descrição:** {vaga_sel.descricao}")
             if st.button("✅ Quero me candidatar", width="stretch"):
                 st.session_state.vaga_id_selecionada = vaga_sel.id
@@ -38,12 +43,18 @@ def render_candidate_portal():
                 st.subheader("📝 Sua Inscrição")
                 nome = st.text_input("Nome Completo")
                 email = st.text_input("E-mail")
-                telefone = st.text_input("Telefone")
+                
+                # Cidade e UF na mesma linha no formulário
+                f1, f2 = st.columns([0.7, 0.3])
+                with f1: cid_in = st.text_input("Sua Cidade", value=vaga_sel.cidade)
+                with f2: uf_in = st.text_input("UF", value=vaga_sel.uf.sigla, disabled=True)
+                
+                celular = st.text_input("Celular (Obrigatório)")
                 genero = st.selectbox("Gênero", ["Masculino", "Feminino"])
                 resumo = st.text_area("Resumo Profissional / Currículo", height=150)
                 
                 if st.form_submit_button("Finalizar Candidatura"):
-                    if not nome or not validar_email(email) or len(resumo) < 15:
+                    if not nome or not validar_email(email) or not celular or len(resumo) < 15:
                         st.error("Verifique os campos obrigatórios.")
                     else:
                         with st.spinner("Analisando perfil..."):
@@ -55,14 +66,14 @@ def render_candidate_portal():
                                 except: score = 0
 
                             novo = Candidato(
-                                nome=nome, email=email.lower(), telefone=telefone,
+                                nome=nome, email=email.lower(), celular=celular, # Corrigido aqui
                                 genero=genero, resumo=resumo, vaga_id=vaga_sel.id,
                                 score_ia=score, parecer_ia=analise
                             )
                             db.add(novo)
                             db.commit()
-                            st.success("Candidatura enviada!")
+                            st.success("Candidatura enviada com sucesso!")
                             st.session_state.abrir_formulario = False
-                            st.rerun() # Limpa o formulário e recarrega
+                            st.rerun()
     finally:
         db.close()

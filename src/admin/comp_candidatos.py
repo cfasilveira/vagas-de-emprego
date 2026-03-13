@@ -14,9 +14,8 @@ def render_inscritos_list():
         cands = db.query(Candidato).filter(Candidato.vaga_id == v_sel.id).all()
         
         for c in cands:
-            # Adicionado Cidade e UF da vaga no card do candidato
             with st.expander(f"{c.nome} - Score: {c.score_ia}%"):
                 st.write(f"**📍 Localização:** {c.vaga.cidade} / {c.vaga.uf.sigla}")
                 st.write(f"**Resumo:** {c.resumo}")
                 st.info(f"**Parecer IA:** {c.parecer_ia}")
-                st.write(f"**Contato:** {c.email} | {c.telefone}")
+                st.write(f"**Contato:** {c.email} | {c.celular}") # Corrigido aqui

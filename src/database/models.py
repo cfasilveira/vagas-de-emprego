@@ -27,7 +27,6 @@ class Vaga(Base):
     uf = relationship("UF")
     data_criacao = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC).replace(microsecond=0))
     data_expiracao = Column(DateTime(timezone=True))
-    # Relacao para facilitar calculo de media
     candidatos = relationship("Candidato", back_populates="vaga")
 
 class Candidato(Base):
@@ -35,7 +34,7 @@ class Candidato(Base):
     id = Column(Integer, primary_key=True)
     nome = Column(String(255), nullable=False)
     email = Column(String(255), unique=True, nullable=False)
-    telefone = Column(String(20))
+    celular = Column(String(20), nullable=False) # Alinhado com o DB
     genero = Column(String(20))
     resumo = Column(Text, nullable=False)
     vaga_id = Column(Integer, ForeignKey("vagas.id"), nullable=False)
