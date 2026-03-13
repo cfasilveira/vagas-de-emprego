@@ -27,7 +27,11 @@ def render_admin_portal():
                 for v in dados:
                     scores = [c.score_ia for c in v.candidatos if c.score_ia is not None]
                     media = sum(scores) / len(scores) if scores else 0
-                    dias_ativa = (agora - v.data_criacao).days
+                    
+                    # CORREÇÃO CIRÚRGICA: Cálculo do tempo ativa garantindo a extração de dias
+                    delta = agora - v.data_criacao
+                    dias_ativa = max(0, delta.days) 
+                    
                     tabela_vagas.append({
                         "ID": v.id, "Título": v.titulo, "Cidade": v.cidade, "UF": v.uf.sigla,
                         "Média Score": f"{media:.1f}%", "Tempo Ativa": f"{dias_ativa} dias",
@@ -63,17 +67,16 @@ def render_admin_portal():
                 total_v = len(vagas_all)
                 total_c = len(cands_all)
                 
-                # Cálculos de KPI
                 df_vagas = pd.DataFrame([{"UF": v.uf.sigla, "Titulo": v.titulo} for v in vagas_all])
                 uf_mais_vagas = df_vagas["UF"].value_counts(normalize=True).idxmax()
                 perc_uf_vagas = df_vagas["UF"].value_counts(normalize=True).max() * 100
 
                 if total_c > 0:
-                    df_cands = pd.DataFrame([{"UF": c.vaga.uf.sigla, "Vaga": c.vaga.titulo} for c in cands_all])
-                    uf_mais_cands = df_cands["UF"].value_counts(normalize=True).idxmax()
-                    perc_uf_cands = df_cands["UF"].value_counts(normalize=True).max() * 100
+                    df_cands_raw = pd.DataFrame([{"UF": c.vaga.uf.sigla, "Vaga": c.vaga.titulo} for c in cands_all])
+                    uf_mais_cands = df_cands_raw["UF"].value_counts(normalize=True).idxmax()
+                    perc_uf_cands = df_cands_raw["UF"].value_counts(normalize=True).max() * 100
                     
-                    vaga_counts = df_cands["Vaga"].value_counts(normalize=True)
+                    vaga_counts = df_cands_raw["Vaga"].value_counts(normalize=True)
                     vaga_mais_disp = vaga_counts.idxmax()
                     perc_vaga_mais = vaga_counts.max() * 100
                     vaga_menos_disp = vaga_counts.idxmin()
@@ -83,7 +86,6 @@ def render_admin_portal():
                     vaga_mais_disp, perc_vaga_mais = "N/A", 0
                     vaga_menos_disp, perc_vaga_menos = "N/A", 0
 
-                # Linha 1: KPIs Gerais
                 k1, k2, k3 = st.columns(3)
                 k1.metric("Total Vagas", total_v)
                 k2.metric("Total Candidatos", total_c)
@@ -92,9 +94,7 @@ def render_admin_portal():
                 
                 st.write("---")
                 
-                # Linha 2: Blocos Geográfico e de Disputa
                 col_geo, col_disp = st.columns(2)
-                
                 with col_geo:
                     st.write("**📍 Por Região (UF)**")
                     kg1, kg2 = st.columns(2)
@@ -111,21 +111,37 @@ def render_admin_portal():
 
             if cands_all:
                 df = pd.DataFrame([{
-                    "Data": c.data.date(), "Score": c.score_ia, 
+                    "Score": c.score_ia, 
                     "Vaga": c.vaga.titulo, "Genero": c.genero, "UF": c.vaga.uf.sigla,
                     "Celular": c.celular
                 } for c in cands_all])
 
                 vagas_sel = st.multiselect("Filtrar Dashboard por Vaga:", options=df['Vaga'].unique())
-                if vagas_sel: df = df[df['Vaga'].isin(vagas_sel)]
+                
+                df_filtered = df.copy()
+                df_vagas_filtered = df_vagas.copy()
+                if vagas_sel: 
+                    df_filtered = df[df['Vaga'].isin(vagas_sel)]
+                    df_vagas_filtered = df_vagas[df_vagas['Titulo'].isin(vagas_sel)]
 
                 col_l, col_r = st.columns(2)
                 with col_l:
-                    df_qual = df.groupby("Vaga")["Score"].mean().reset_index()
+                    df_qual = df_filtered.groupby("Vaga")["Score"].mean().reset_index()
                     st.plotly_chart(px.bar(df_qual, x="Vaga", y="Score", title="Score Médio por Vaga"), use_container_width=True)
                 with col_r:
-                    df_gen = df.groupby("Genero").size().reset_index(name="Qtd")
+                    df_gen = df_filtered.groupby("Genero").size().reset_index(name="Qtd")
                     st.plotly_chart(px.pie(df_gen, values="Qtd", names="Genero", title="Distribuição de Gênero"), use_container_width=True)
+                
+                # ADIÇÃO CIRÚRGICA: Dois gráficos de UF na base do BI
+                st.write("---")
+                c1, c2 = st.columns(2)
+                with c1:
+                    df_v_uf = df_vagas_filtered.groupby("UF").size().reset_index(name="Quantidade")
+                    st.plotly_chart(px.bar(df_v_uf, x="UF", y="Quantidade", title="Vagas por UF", color_discrete_sequence=['#00CC96']), use_container_width=True)
+                with c2:
+                    # NOVO GRÁFICO: Candidatos por UF (usando o filtro de vaga)
+                    df_c_uf = df_filtered.groupby("UF").size().reset_index(name="Candidatos")
+                    st.plotly_chart(px.bar(df_c_uf, x="UF", y="Candidatos", title="Candidatos por UF", color_discrete_sequence=['#636EFA']), use_container_width=True)
             else:
                 st.info("Aguardando novos candidatos para gerar gráficos.")
     finally:
