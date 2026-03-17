@@ -1,39 +1,50 @@
 import os
 import streamlit as st
+import sys
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from contextlib import contextmanager
 
-# Busca a Secret do Hugging Face
+# 1. Tenta buscar a Secret
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# DIAGNÓSTICO VISUAL NO STREAMLIT
+# --- BLOCO DE DIAGNÓSTICO ---
 if not DATABASE_URL:
-    st.error("❌ ERRO CRÍTICO: Secret 'DATABASE_URL' não encontrada no Hugging Face!")
-    st.info("Verifique se o nome na aba 'Variables and Secrets' está exatamente como DATABASE_URL (maiúsculo).")
-    # Fallback para não quebrar o build, mas as vagas não aparecerão
-    DATABASE_URL = "sqlite:///./vagas.db"
-else:
-    # Ajuste automático do prefixo exigido pelo SQLAlchemy
-    if DATABASE_URL.startswith("postgres://"):
-        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-    
-    # Mostra sucesso apenas para você confirmar a conexão (pode remover depois)
-    if "db_connected" not in st.session_state:
-        st.toast("🚀 Conectado ao banco Supabase!")
-        st.session_state.db_connected = True
+    st.error("🚨 ERRO: A Secret 'DATABASE_URL' não foi encontrada no Hugging Face!")
+    st.info("Acesse Settings -> Variables and Secrets e verifique o nome.")
+    st.stop()  # Trava o app aqui
 
-# Criação da Engine
+# Ajuste do prefixo para SQLAlchemy 2.0
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+# 2. Tenta conectar e "Grita" o erro específico
 try:
     engine = create_engine(
         DATABASE_URL,
         pool_pre_ping=True,
-        # O Supabase exige SSL para conexões externas
+        # O Supabase exige SSL
         connect_args={"sslmode": "require"} if "supabase" in DATABASE_URL else {}
     )
+    # Testa a conexão de verdade agora
+    with engine.connect() as conn:
+        pass 
+    
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    
 except Exception as e:
-    st.error(f"❌ Erro ao conectar no banco: {e}")
+    st.error("❌ FALHA NA CONEXÃO COM O SUPABASE")
+    st.warning(f"Detalhe técnico do erro: {e}")
+    
+    # Dicas baseadas no tipo de erro
+    if "password authentication failed" in str(e):
+        st.info("💡 Dica: A senha na Secret está errada ou os caracteres especiais (como @) não foram escapados com %40.")
+    elif "could not translate host name" in str(e):
+        st.info("💡 Dica: O endereço da URL (host) parece estar incorreto.")
+    
+    st.stop() # Não deixa o app continuar se o banco estiver quebrado
+
+# --- FIM DO DIAGNÓSTICO ---
 
 class Base(DeclarativeBase):
     pass
