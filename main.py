@@ -1,30 +1,37 @@
 import streamlit as st
-from src.database.config import engine, SessionLocal
-from src.database.models import Base, UF
+from src.database.config import engine, SessionLocal, Base
+from src.database.models import UF  # Certifique-se que o caminho está correto
 from src.candidate.views import render_candidate_portal
 from src.admin.auth import render_login_page
 from src.admin.views import render_admin_portal
 
-# --- INICIALIZAÇÃO AUTOMÁTICA (ESSENCIAL PARA NUVEM) ---
+# --- INICIALIZAÇÃO AUTOMÁTICA ---
+# Cria as tabelas no Supabase se não existirem
 Base.metadata.create_all(bind=engine)
-db = SessionLocal()
-try:
-    if db.query(UF).count() == 0:
-        ufs = [
-            ('AC', 'Acre'), ('AL', 'Alagoas'), ('AP', 'Amapá'), ('AM', 'Amazonas'),
-            ('BA', 'Bahia'), ('CE', 'Ceará'), ('DF', 'Distrito Federal'), ('ES', 'Espírito Santo'),
-            ('GO', 'Goiás'), ('MA', 'Maranhão'), ('MT', 'Mato Grosso'), ('MS', 'Mato Grosso do Sul'),
-            ('MG', 'Minas Gerais'), ('PA', 'Pará'), ('PB', 'Paraíba'), ('PR', 'Paraná'),
-            ('PE', 'Pernambuco'), ('PI', 'Piauí'), ('RJ', 'Rio de Janeiro'), ('RN', 'Rio Grande do Norte'),
-            ('RS', 'Rio Grande do Sul'), ('RO', 'Rondônia'), ('RR', 'Roraima'), ('SC', 'Santa Catarina'),
-            ('SP', 'São Paulo'), ('SE', 'Sergipe'), ('TO', 'Tocantins')
-        ]
-        for sigla, nome in ufs:
-            db.add(UF(sigla=sigla, nome=nome))
-        db.commit()
-finally:
-    db.close()
-# -----------------------------------------------------
+
+def init_db():
+    db = SessionLocal()
+    try:
+        if db.query(UF).count() == 0:
+            ufs = [
+                ('AC', 'Acre'), ('AL', 'Alagoas'), ('AP', 'Amapá'), ('AM', 'Amazonas'),
+                ('BA', 'Bahia'), ('CE', 'Ceará'), ('DF', 'Distrito Federal'), ('ES', 'Espírito Santo'),
+                ('GO', 'Goiás'), ('MA', 'Maranhão'), ('MT', 'Mato Grosso'), ('MS', 'Mato Grosso do Sul'),
+                ('MG', 'Minas Gerais'), ('PA', 'Pará'), ('PB', 'Paraíba'), ('PR', 'Paraná'),
+                ('PE', 'Pernambuco'), ('PI', 'Piauí'), ('RJ', 'Rio de Janeiro'), ('RN', 'Rio Grande do Norte'),
+                ('RS', 'Rio Grande do Sul'), ('RO', 'Rondônia'), ('RR', 'Roraima'), ('SC', 'Santa Catarina'),
+                ('SP', 'São Paulo'), ('SE', 'Sergipe'), ('TO', 'Tocantins')
+            ]
+            for sigla, nome in ufs:
+                db.add(UF(sigla=sigla, nome=nome))
+            db.commit()
+    except Exception as e:
+        st.error(f"Erro ao popular UFs: {e}")
+    finally:
+        db.close()
+
+# Executa a conferência de UFs
+init_db()
 
 st.set_page_config(page_title="RH IA", page_icon="🎯", layout="wide")
 
