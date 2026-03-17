@@ -3,7 +3,7 @@ import bcrypt
 class Security:
     @staticmethod
     def gerar_senha_hash(senha_plana: str) -> str:
-        """Gera um hash seguro usando Bcrypt (Referência: Troy Hunt)."""
+        """Gera um hash seguro usando Bcrypt."""
         salt = bcrypt.gensalt()
         return bcrypt.hashpw(senha_plana.encode('utf-8'), salt).decode('utf-8')
 
@@ -17,11 +17,7 @@ class Security:
 
     @staticmethod
     def mascarar_cpf(cpf: str) -> str:
-        """
-        Mascaramento para conformidade LGPD.
-        Exemplo: 123.456.789-01 -> ***.456.***-01
-        """
+        """Mascaramento para conformidade LGPD."""
         if not cpf or len(cpf) < 14:
             return cpf
-        # Preserva o segundo bloco e os últimos dois dígitos
         return f"***.{cpf[4:7]}.***-{cpf[-2:]}"
