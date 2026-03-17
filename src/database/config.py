@@ -1,61 +1,34 @@
 import os
 import streamlit as st
-import sys
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
-from contextlib import contextmanager
 
-# 1. Tenta buscar a Secret
-DATABASE_URL = os.getenv("DATABASE_URL")
+# 1. Pega a URL e limpa espaços invisíveis
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 
-# --- BLOCO DE DIAGNÓSTICO ---
+# 2. Mostra na tela para conferência (SÓ O INÍCIO POR SEGURANÇA)
 if not DATABASE_URL:
-    st.error("🚨 ERRO: A Secret 'DATABASE_URL' não foi encontrada no Hugging Face!")
-    st.info("Acesse Settings -> Variables and Secrets e verifique o nome.")
-    st.stop()  # Trava o app aqui
+    st.error("🚨 A variável 'DATABASE_URL' está VAZIA nos Logs do Sistema.")
+    st.info("Acesse Settings -> Variables and Secrets e verifique se você clicou em 'Save' após o Replace.")
+    DATABASE_URL = "sqlite:///./vagas.db"
+else:
+    st.success(f"✅ Variável encontrada! Começa com: {DATABASE_URL[:15]}...")
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-# Ajuste do prefixo para SQLAlchemy 2.0
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-
-# 2. Tenta conectar e "Grita" o erro específico
+# 3. Engine
 try:
     engine = create_engine(
         DATABASE_URL,
-        pool_pre_ping=True,
-        # O Supabase exige SSL
         connect_args={"sslmode": "require"} if "supabase" in DATABASE_URL else {}
     )
-    # Testa a conexão de verdade agora
-    with engine.connect() as conn:
-        pass 
-    
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    
+    # Testa a conexão
+    with engine.connect() as conn:
+        st.toast("Conectado ao Supabase com sucesso!")
 except Exception as e:
-    st.error("❌ FALHA NA CONEXÃO COM O SUPABASE")
-    st.warning(f"Detalhe técnico do erro: {e}")
-    
-    # Dicas baseadas no tipo de erro
-    if "password authentication failed" in str(e):
-        st.info("💡 Dica: A senha na Secret está errada ou os caracteres especiais (como @) não foram escapados com %40.")
-    elif "could not translate host name" in str(e):
-        st.info("💡 Dica: O endereço da URL (host) parece estar incorreto.")
-    
-    st.stop() # Não deixa o app continuar se o banco estiver quebrado
-
-# --- FIM DO DIAGNÓSTICO ---
+    st.error(f"❌ Erro técnico: {e}")
+    st.stop()
 
 class Base(DeclarativeBase):
     pass
-
-@contextmanager
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    except Exception as e:
-        db.rollback()
-        raise e
-    finally:
-        db.close()
