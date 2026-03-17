@@ -11,8 +11,13 @@ class Security:
     def verificar_senha(senha_plana: str, hash_armazenado: str) -> bool:
         """Verifica se a senha plana corresponde ao hash armazenado."""
         try:
-            return bcrypt.checkpw(senha_plana.encode('utf-8'), hash_armazenado.encode('utf-8'))
-        except Exception:
+            # Garante que ambos sejam comparados como bytes
+            return bcrypt.checkpw(
+                senha_plana.encode('utf-8'), 
+                hash_armazenado.encode('utf-8')
+            )
+        except Exception as e:
+            print(f"Erro na verificação de senha: {e}")
             return False
 
     @staticmethod

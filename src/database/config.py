@@ -3,14 +3,14 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from contextlib import contextmanager
 
-# 1. Busca a Secret do HF. Se não existir, usa o SQLite local.
+# 1. Busca a Secret do HF
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./vagas.db")
 
-# 2. Ajuste de protocolo: SQLAlchemy exige 'postgresql://'
+# 2. Ajuste de protocolo para SQLAlchemy 2.0
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-# 3. Log de Diagnóstico (aparecerá nos logs do HF)
+# 3. Log de Diagnóstico (Importante: olhe isso nos logs do HF!)
 if "supabase" in DATABASE_URL:
     print("🚀 INFO: Conectando ao banco externo (Supabase)")
 else:
