@@ -1,12 +1,22 @@
 import os
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from contextlib import contextmanager
 
-# Unificado para o nome do banco no Docker
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@db:5432/rh_db")
+# 1. Carrega as variáveis do arquivo .env (Onde definimos a URL local)
+load_dotenv()
 
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+# 2. Busca a URL do ambiente. 
+# Se não encontrar, usa o padrão que está no seu docker-compose.yml
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:pass@db:5432/vagas_db")
+
+# 3. Cria a Engine para o Postgres Local (sem SSL)
+engine = create_engine(
+    DATABASE_URL, 
+    pool_pre_ping=True
+)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 class Base(DeclarativeBase):
