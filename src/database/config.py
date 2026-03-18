@@ -3,32 +3,31 @@ import streamlit as st
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
-# 1. Tenta ler das Secrets do Streamlit ou do ambiente
-DATABASE_URL = st.secrets.get("DATABASE_URL", os.getenv("DATABASE_URL", "")).strip()
+# 1. Busca das Secrets do Streamlit Cloud
+DATABASE_URL = st.secrets.get("DATABASE_URL", os.getenv("DATABASE_URL", ""))
 
 if not DATABASE_URL:
-    st.error("🚨 A variável 'DATABASE_URL' não foi encontrada!")
-    DATABASE_URL = "sqlite:///./vagas.db"
-else:
-    # 2. Corrige o protocolo para SQLAlchemy 2.0
-    if DATABASE_URL.startswith("postgres://"):
-        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    st.error("🚨 DATABASE_URL não configurada nas Secrets!")
+    st.stop()
 
-# 3. Configura a Engine com SSL obrigatório para o Supabase
+# 2. Correção de protocolo
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 try:
-    # O segredo para o Streamlit Cloud é o sslmode=require
+    # 3. Engine com SSL obrigatório para o Supabase
     engine = create_engine(
         DATABASE_URL,
-        connect_args={"sslmode": "require"} if "supabase" in DATABASE_URL or "aws" in DATABASE_URL else {},
+        connect_args={"sslmode": "require"},
         pool_pre_ping=True
     )
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     
-    # Testa a conexão silenciosamente
+    # Testa a conexão
     with engine.connect() as conn:
         pass
 except Exception as e:
-    st.error(f"❌ Erro de Conexão: {e}")
+    st.error(f"❌ Erro de Conexão com o Banco: {e}")
     st.stop()
 
 class Base(DeclarativeBase):
