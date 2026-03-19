@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean, Text, Float, CheckConstraint, CHAR
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean, Text, Float, CHAR
 from sqlalchemy.dialects.postgresql import CITEXT
 from sqlalchemy.orm import relationship
 from src.database.config import Base
@@ -15,11 +15,6 @@ class Administrador(Base):
     id = Column(Integer, primary_key=True)
     login = Column(CITEXT, unique=True, nullable=False)
     senha_hash = Column(String(255), nullable=False)
-
-class TipoTrabalho(Base):
-    __tablename__ = "tipos_trabalho"
-    id = Column(Integer, primary_key=True)
-    nome = Column(String(20), unique=True, nullable=False)
 
 class Vaga(Base):
     __tablename__ = "vagas"
@@ -44,20 +39,15 @@ class Candidato(Base):
     score_ia = Column(Integer)
     parecer_ia = Column(Text)
     data = Column(DateTime(timezone=True))
-    vaga_id = Column(Integer, ForeignKey("vagas.id"), nullable=False)
-    score_ia = Column(Integer)
-    parecer_ia = Column(Text)
-    data = Column(DateTime(timezone=True))
-    # Relacionamento para acessar a UF real do candidato
-
 
 class Inscricao(Base):
     __tablename__ = "inscricoes"
     id = Column(Integer, primary_key=True)
     candidato_id = Column(Integer, ForeignKey("candidatos.id", ondelete="CASCADE"))
     vaga_id = Column(Integer, ForeignKey("vagas.id", ondelete="CASCADE"))
-    candidato = relationship("Candidato")
-    vaga = relationship("Vaga")
     resumo_submetido = Column(Text, nullable=False)
     feedback_ia = Column(Text)
-    data = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC).replace(microsecond=0))
+    data = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    
+    candidato = relationship("Candidato")
+    vaga = relationship("Vaga")
