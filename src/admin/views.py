@@ -26,7 +26,6 @@ def render_admin_portal():
             joinedload(Inscricao.vaga).joinedload(Vaga.uf)
         ).all()
 
-        # Alteração cirúrgica: 'Cadastrar Vaga' -> 'Controle de Vagas'
         tabs = st.tabs(["👥 Candidatos", "🔍 Análise Profunda", "📊 Dashboard", "➕ Controle de Vagas"])
 
         with tabs[0]:
@@ -46,8 +45,16 @@ def render_admin_portal():
                 opcoes = {f"{i.candidato.nome} ({i.vaga.titulo})": i for i in inscricoes}
                 sel = st.selectbox("Selecione:", list(opcoes.keys()))
                 ins = opcoes[sel]
+                
+                # Exibição cirúrgica dos detalhes do candidato
                 st.write(f"**📍 Localização:** {ins.vaga.cidade or 'Remoto'} - {ins.vaga.uf.sigla if ins.vaga.uf else ''}")
+                
+                # Inclusão do Gênero conforme solicitado
+                genero_extenso = "Masculino" if ins.candidato.genero == "Masculino" else "Feminino"
+                st.write(f"**👤 Gênero:** {genero_extenso}")
+                
                 st.write(f"**📞 Contato:** {ins.candidato.celular}")
+                
                 c_res, c_ia = st.columns(2)
                 with c_res: st.info(f"**📝 Resumo:**\n\n{ins.resumo_submetido or 'N/A'}")
                 with c_ia:
