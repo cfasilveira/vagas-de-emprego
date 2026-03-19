@@ -1,29 +1,12 @@
 import streamlit as st
 
-st.set_page_config(
-    page_title="RH IA - Portal de Vagas",
-    page_icon="🎯",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
-
 st.markdown("""
     <style>
         [data-testid="stSidebar"] {
             background-color: #003366;
         }
-        [data-testid="stSidebar"] *, 
-        [data-testid="stSidebar"] label, 
-        [data-testid="stSidebar"] .stMarkdown p {
+        [data-testid="stSidebar"] *, [data-testid="stSidebar"] p {
             color: white !important;
-        }
-        div[data-testid="stSidebar"] button[key="logout_sidebar"] {
-            background-color: #ff4b4b !important;
-            border: none !important;
-        }
-        div[data-testid="stSidebar"] button[key="logout_sidebar"] p {
-            color: white !important;
-            font-weight: bold !important;
         }
     </style>
 """, unsafe_allow_html=True)

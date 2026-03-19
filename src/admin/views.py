@@ -13,7 +13,7 @@ def extrair_score(texto):
 def render_admin_portal():
     with st.sidebar:
         st.divider()
-        if st.button("🔴 Sair do Sistema", key="logout_sidebar", width="stretch"):
+        if st.button("Sair do Sistema", key="logout_sidebar", type="primary", use_container_width=True):
             st.session_state.is_admin = False
             st.rerun()
 
