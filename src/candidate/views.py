@@ -88,10 +88,14 @@ def render_candidate_portal():
                         try:
                             cand = db.query(Candidato).filter(Candidato.email == email).first()
                             if not cand:
-                                cand = Candidato(nome=nome, email=email, cpf=cpf_l, genero=genero_ext[0], 
-                                               telefone=tel_l, resumo=resumo, logradouro="Pendente", 
-                                               numero="0", bairro="Pendente", cidade=cid, cep=cep_l, 
-                                               uf_residencia_id=uf_s.id)
+                                cand = Candidato(
+                                    nome=nome,
+                                    email=email,
+                                    celular=tel_l,
+                                    genero=genero_ext[0],
+                                    resumo=resumo,
+                                    vaga_id=vaga_sel.id
+                                )
                                 db.add(cand)
                                 db.flush()
                             

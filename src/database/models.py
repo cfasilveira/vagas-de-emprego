@@ -31,32 +31,25 @@ class Vaga(Base):
     ativo = Column(Boolean, default=True)
     uf_id = Column(Integer, ForeignKey("ufs.id"))
     uf = relationship("UF")
-    tipo_trabalho_id = Column(Integer, ForeignKey("tipos_trabalho.id"), nullable=False)
-    quantidade_vagas = Column(Integer, default=1)
 
 class Candidato(Base):
     __tablename__ = "candidatos"
     id = Column(Integer, primary_key=True)
     nome = Column(CITEXT, nullable=False)
     email = Column(CITEXT, unique=True, nullable=False)
-    cpf = Column(CHAR(11), nullable=False)
     genero = Column(CHAR(1), nullable=False)
-    telefone = Column(String(11), nullable=False)
+    celular = Column(String(11), nullable=False)
     resumo = Column(String(2000), nullable=False)
-    logradouro = Column(String(150), nullable=False)
-    numero = Column(String(20), nullable=False)
-    complemento = Column(String(100))
-    bairro = Column(String(100), nullable=False)
-    cidade = Column(String(100), nullable=False)
-    cep = Column(CHAR(8), nullable=False)
-    uf_residencia_id = Column(Integer, ForeignKey("ufs.id"), nullable=False)
+    vaga_id = Column(Integer, ForeignKey("vagas.id"), nullable=False)
+    score_ia = Column(Integer)
+    parecer_ia = Column(Text)
+    data = Column(DateTime(timezone=True))
+    vaga_id = Column(Integer, ForeignKey("vagas.id"), nullable=False)
+    score_ia = Column(Integer)
+    parecer_ia = Column(Text)
+    data = Column(DateTime(timezone=True))
     # Relacionamento para acessar a UF real do candidato
-    uf_residencia = relationship("UF")
 
-    __table_args__ = (
-        CheckConstraint("genero IN ('M', 'F')", name="check_genero_mf"),
-        CheckConstraint("cpf ~ '^[0-9]{11}$'", name="check_cpf_numerico"),
-    )
 
 class Inscricao(Base):
     __tablename__ = "inscricoes"

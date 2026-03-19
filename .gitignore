@@ -1,4 +1,4 @@
-d# --- Segurança e Credenciais ---
+# --- Segurança e Credenciais ---
 # Nunca envie senhas, chaves de API ou URLs de banco de dados
 .env
 *.pem

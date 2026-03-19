@@ -25,11 +25,11 @@ def render_admin_portal():
         with tabs[0]:
             st.subheader("📋 Vagas no Sistema")
             query_vagas = text("""
-                SELECT v.id, v.titulo, v.cidade, UPPER(u.sigla) as uf, t.nome as tipo, 
+                SELECT v.id, v.titulo, v.cidade, UPPER(u.sigla) as uf,  
                        CASE WHEN v.ativo THEN 'Ativa' ELSE 'Inativa' END as status
                 FROM vagas v
                 JOIN ufs u ON v.uf_id = u.id
-                JOIN tipos_trabalho t ON v.tipo_trabalho_id = t.id
+                
                 ORDER BY v.id DESC
             """)
             with engine.connect() as conn:
@@ -40,25 +40,25 @@ def render_admin_portal():
             st.divider()
             st.subheader("👥 Candidatos Inscritos")
             query_cand = text("""
-                SELECT c.nome, v.titulo as vaga, UPPER(u_cand.sigla) as uf_candidato, 
-                       c.telefone, c.email, i.feedback_ia
+                SELECT c.nome, v.titulo as vaga,  
+                       c.celular, c.email, i.feedback_ia
                 FROM inscricoes i
                 JOIN candidatos c ON i.candidato_id = c.id
                 JOIN vagas v ON i.vaga_id = v.id
-                JOIN ufs u_cand ON c.uf_residencia_id = u_cand.id
+                
             """)
             with engine.connect() as conn:
                 df_cand = pd.read_sql(query_cand, conn)
             
             if not df_cand.empty:
                 df_cand['match %'] = df_cand['feedback_ia'].str.extract(r'(\d+%)').fillna("0%")
-                st.dataframe(df_cand[['nome', 'vaga', 'uf_candidato', 'match %']], width='stretch', hide_index=True)
+                st.dataframe(df_cand[['nome', 'vaga', 'match %']], width='stretch', hide_index=True)
 
         # --- ABA 2: DETALHES (MANTIDA) ---
         with tabs[1]:
             st.subheader("🔍 Análise Profunda")
             inscritos = db.query(Inscricao).options(
-                joinedload(Inscricao.candidato).joinedload(Candidato.uf_residencia),
+                joinedload(Inscricao.candidato),
                 joinedload(Inscricao.vaga)
             ).all()
             
@@ -71,9 +71,9 @@ def render_admin_portal():
                 with c1:
                     match_val = re.search(r"(\d+%)", insc.feedback_ia) if insc.feedback_ia else None
                     st.metric("Aderência", match_val.group(1) if match_val else "---")
-                    st.write(f"**Contato:** {insc.candidato.telefone}")
-                    uf_sigla = insc.candidato.uf_residencia.sigla.upper() if insc.candidato.uf_residencia else "??"
-                    st.write(f"**Local:** {insc.candidato.cidade} / {uf_sigla}")
+                    st.write(f"**Contato:** {insc.candidato.celular}")
+                    uf_sigla = insc.vaga.uf.sigla.upper() if (insc.vaga and insc.vaga.uf) else "??"
+                    
                 with c2:
                     st.markdown("### 🧠 Avaliação da IA")
                     if insc.feedback_ia:
@@ -109,10 +109,10 @@ def render_admin_portal():
             with c_geo:
                 st.markdown("### 📍 Analise Geografica")
                 query_geo = text("""
-                    SELECT UPPER(u.sigla) as uf, 
+                    SELECT 'Local' as uf, 
                            CASE WHEN c.genero = 'M' THEN 'Masculino' ELSE 'Feminino' END as perfil,
                            count(*) as total
-                    FROM candidatos c JOIN ufs u ON c.uf_residencia_id = u.id GROUP BY u.sigla, c.genero
+                    FROM candidatos c GROUP BY c.genero
                 """)
                 with engine.connect() as conn:
                     df_geo = pd.read_sql(query_geo, conn)
@@ -159,17 +159,14 @@ def render_admin_portal():
                 with c1:
                     cidade = st.text_input("Cidade")
                     salario = st.number_input("Salário", min_value=0.0)
-                    qtd = st.number_input("Vagas", min_value=1)
                 with c2:
                     ufs_l = db.query(UF).order_by(UF.sigla).all()
-                    tipos_l = db.query(TipoTrabalho).all()
                     u_obj = st.selectbox("UF", ufs_l, format_func=lambda x: x.sigla.upper())
-                    t_obj = st.selectbox("Tipo", tipos_l, format_func=lambda x: x.nome)
                     ativa = st.selectbox("Status", [True, False], format_func=lambda x: "Ativa" if x else "Inativa")
                 if st.form_submit_button("🚀 Salvar Vaga", width='stretch'):
                     if titulo and descricao:
                         nova = Vaga(titulo=titulo, descricao=descricao, cidade=cidade, salario=salario, 
-                                    quantidade_vagas=qtd, uf_id=u_obj.id, tipo_trabalho_id=t_obj.id, ativo=ativa)
+                                     uf_id=u_obj.id,  ativo=ativa)
                         db.add(nova); db.commit()
                         st.success("Vaga salva!"); st.rerun()
     finally:

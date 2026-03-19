@@ -20,15 +20,16 @@ def realizar_inscricao(vaga_id, dados):
         if not c:
             c = Candidato(
                 nome=dados['nome'],
-                cpf=dados['documento'],
-                whatsapp=dados['telefone'],
+                email=dados['email'],
+                celular=dados['telefone'],
                 resumo=dados['resumo'],
-                fk_genero=gen.id if gen else None
+                genero=dados['genero'][0],
+                vaga_id=vaga.id
             )
             db.add(c)
         else:
             c.resumo = dados['resumo']
-            c.whatsapp = dados['telefone']
+            c.celular = dados['telefone']
         
         db.flush()
         
@@ -37,10 +38,11 @@ def realizar_inscricao(vaga_id, dados):
         
         # Registro da Inscrição (FKs corrigidas)
         nova_insc = Inscricao(
-            fk_candidato=c.id, 
-            fk_vaga=vaga.id, 
-            feedback_ia=fb, 
-            data_inscricao=datetime.utcnow()
+            candidato_id=c.id, 
+            vaga_id=vaga.id, 
+            resumo_submetido=dados['resumo'],
+            feedback_ia=fb
+        )
         )
         db.add(nova_insc)
         db.commit()
