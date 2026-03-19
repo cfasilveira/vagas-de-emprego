@@ -26,7 +26,8 @@ def render_admin_portal():
             joinedload(Inscricao.vaga).joinedload(Vaga.uf)
         ).all()
 
-        tabs = st.tabs(["👥 Candidatos", "🔍 Análise Profunda", "📊 Dashboard", "➕ Cadastrar Vaga"])
+        # Alteração cirúrgica: 'Cadastrar Vaga' -> 'Controle de Vagas'
+        tabs = st.tabs(["👥 Candidatos", "🔍 Análise Profunda", "📊 Dashboard", "➕ Controle de Vagas"])
 
         with tabs[0]:
             dados = []
