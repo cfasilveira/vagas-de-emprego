@@ -5,7 +5,7 @@ from sqlalchemy.orm import joinedload
 from src.database.config import SessionLocal
 from src.database.models import Vaga, Candidato, Inscricao, UF
 
-def extrair_score(texto):
+def extrair_score_txt(texto):
     if not texto: return None
     match = re.search(r'(\d+)%', texto)
     return f"{match.group(1)}%" if match else None
@@ -29,42 +29,52 @@ def render_admin_portal():
         tabs = st.tabs(["👥 Candidatos", "🔍 Análise Profunda", "📊 Dashboard", "➕ Controle de Vagas"])
 
         with tabs[0]:
-            dados = []
-            for i in inscricoes:
-                sc_txt = extrair_score(i.feedback_ia)
-                dados.append({
-                    "Candidato": i.candidato.nome, "Vaga": i.vaga.titulo,
-                    "Cidade": i.vaga.cidade or "N/I", "UF": i.vaga.uf.sigla if i.vaga.uf else "N/A",
-                    "Score": sc_txt or f"{i.candidato.score_ia or 0}%"
-                })
-            st.dataframe(pd.DataFrame(dados), width="stretch")
+            st.subheader("📋 Lista Geral de Inscritos")
+            if inscricoes:
+                dados_tab = []
+                for i in inscricoes:
+                    sc = extrair_score_txt(i.feedback_ia) or f"{i.candidato.score_ia or 0}%"
+                    gen = "Masculino" if i.candidato.genero in ['M', 'Masculino'] else "Feminino"
+                    dados_tab.append({
+                        "Candidato": i.candidato.nome,
+                        "Vaga": i.vaga.titulo,
+                        "Cidade": i.vaga.cidade,
+                        "Gênero": gen,
+                        "Score IA": sc
+                    })
+                # hide_index=True remove a primeira coluna de IDs automáticos
+                st.dataframe(pd.DataFrame(dados_tab), width="stretch", hide_index=True)
+            else:
+                st.info("Nenhum candidato inscrito.")
 
         with tabs[1]:
-            st.subheader("🔍 Análise Profunda")
+            st.subheader("🔍 Detalhamento Individual")
             if inscricoes:
                 opcoes = {f"{i.candidato.nome} ({i.vaga.titulo})": i for i in inscricoes}
-                sel = st.selectbox("Selecione:", list(opcoes.keys()))
+                sel = st.selectbox("Selecione para analisar:", list(opcoes.keys()))
                 ins = opcoes[sel]
                 
-                # Exibição cirúrgica dos detalhes do candidato
-                st.write(f"**📍 Localização:** {ins.vaga.cidade or 'Remoto'} - {ins.vaga.uf.sigla if ins.vaga.uf else ''}")
+                c1, c2 = st.columns(2)
+                with c1:
+                    st.write(f"**📍 Local:** {ins.vaga.cidade} ({ins.vaga.uf.sigla if ins.vaga.uf else 'N/A'})")
+                    gen_f = "Masculino" if ins.candidato.genero in ['M', 'Masculino'] else "Feminino"
+                    st.write(f"**👤 Gênero:** {gen_f}")
+                with c2:
+                    st.write(f"**📞 Contato:** {ins.candidato.celular}")
+                    st.write(f"**📧 Email:** {ins.candidato.email}")
                 
-                # Inclusão do Gênero conforme solicitado
-                genero_extenso = "Masculino" if ins.candidato.genero == "Masculino" else "Feminino"
-                st.write(f"**👤 Gênero:** {genero_extenso}")
-                
-                st.write(f"**📞 Contato:** {ins.candidato.celular}")
-                
-                c_res, c_ia = st.columns(2)
-                with c_res: st.info(f"**📝 Resumo:**\n\n{ins.resumo_submetido or 'N/A'}")
-                with c_ia:
-                    score_f = extrair_score(ins.feedback_ia) or f"{ins.candidato.score_ia or 0}%"
-                    st.success(f"**🧠 Avaliação IA (Aderência: {score_f}):**\n\n{ins.feedback_ia or 'Pendente'}")
-            else: st.warning("Sem dados.")
+                st.divider()
+                col_res, col_ia = st.columns(2)
+                with col_res:
+                    st.info(f"**📝 Resumo do Candidato:**\n\n{ins.candidato.resumo or 'N/A'}")
+                with col_ia:
+                    st.success(f"**🧠 Parecer da IA:**\n\n{ins.feedback_ia or 'Aguardando...'}")
+            else:
+                st.warning("Sem dados para análise profunda.")
 
         with tabs[2]:
-            from src.admin.comp_vagas import render_dashboard
-            render_dashboard(inscricoes)
+            from src.admin.comp_candidatos import render_analytics_dashboard
+            render_analytics_dashboard()
 
         with tabs[3]:
             from src.admin.comp_vagas import render_vagas_manager
